@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kos-starter-kit/questionnaire.schema.json",
+  "title": "Knowledge OS Installer Answers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user", "system", "privacy", "rhythm", "installation"],
+  "properties": {
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preferred_name"],
+      "properties": {
+        "preferred_name": {"type": "string", "minLength": 1},
+        "full_name": {"type": "string", "default": ""},
+        "author_name": {"type": "string", "default": ""},
+        "technical_username": {"type": "string", "pattern": "^[A-Za-z0-9._-]*$", "default": ""},
+        "role": {"type": "string", "default": "Knowledge worker"},
+        "timezone": {"type": "string", "default": "UTC"},
+        "locale": {"type": "string", "default": "en"},
+        "language": {"type": "string", "default": "English"},
+        "communication_style": {"type": "string", "default": "Direct, concise, practical"}
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "default": "Knowledge OS"},
+        "short_name": {"type": "string", "default": "KOS"},
+        "root_folder_name": {"type": "string", "default": "Knowledge OS"},
+        "description": {"type": "string", "default": "A portable operating system for durable knowledge and active work."},
+        "motto": {"type": "string", "default": ""},
+        "installation_date": {"type": "string", "format": "date"}
+      }
+    },
+    "intended_use": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["business", "projects", "software-development", "personal-management", "content-creation", "research", "learning", "finance", "hobbies", "client-management", "product-development"]
+      },
+      "default": ["projects", "personal-management", "research", "learning"]
+    },
+    "tools": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["obsidian", "vscode", "codex", "claude-code", "git", "github", "onedrive", "google-drive", "gmail", "google-calendar", "telegram", "n8n"]
+      },
+      "default": ["obsidian", "vscode"]
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_ai_access"],
+      "properties": {
+        "default_ai_access": {"enum": ["public", "internal", "restricted"], "default": "internal"},
+        "restricted_folders": {"type": "array", "items": {"type": "string"}, "default": ["03 - Personal", "09 - Attachments"]},
+        "business_ai_access": {"enum": ["public", "internal", "restricted"], "default": "internal"},
+        "personal_ai_access": {"enum": ["public", "internal", "restricted"], "default": "restricted"},
+        "linked_source_ai_access": {"enum": ["public", "internal", "restricted"], "default": "restricted"},
+        "exclude_sensitive_automatically": {"type": "boolean", "default": true}
+      }
+    },
+    "rhythm": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "daily_review_time": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "default": "17:00"},
+        "weekly_review_day": {"enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "default": "Friday"},
+        "monthly_review": {"type": "boolean", "default": true},
+        "daily_note_generation": {"type": "boolean", "default": true},
+        "inbox_processing": {"type": "boolean", "default": true},
+        "memory_maintenance": {"type": "boolean", "default": true},
+        "handoff_maintenance": {"type": "boolean", "default": true},
+        "git_review": {"type": "boolean", "default": false},
+        "project_health_checks": {"type": "boolean", "default": true}
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "target_directory"],
+      "properties": {
+        "mode": {"enum": ["lean", "standard", "business", "developer", "creator", "custom", "migration"], "default": "standard"},
+        "target_directory": {"type": "string", "minLength": 1},
+        "initialize_git": {"type": "boolean", "default": false},
+        "create_initial_commit": {"type": "boolean", "default": false},
+        "include_samples": {"type": "boolean", "default": false},
+        "include_gitkeep": {"type": "boolean", "default": true},
+        "enable_windows_scripts": {"type": "boolean", "default": true},
+        "enable_unix_scripts": {"type": "boolean", "default": true},
+        "configure_external_integrations": {"type": "boolean", "default": false},
+        "allow_overwrite": {"type": "boolean", "default": false},
+        "backup_before_migration": {"type": "boolean", "default": true},
+        "custom_modules": {"type": "array", "items": {"enum": ["business", "projects", "personal", "hobbies", "knowledge", "inbox", "daily", "attachments", "archive"]}, "default": []}
+      }
+    }
+  }
+}

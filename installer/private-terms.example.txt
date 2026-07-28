@@ -1,0 +1,4 @@
+# Copy this file to private-terms.txt and add one private identifier per line.
+# private-terms.txt is ignored by Git. Matching is case-insensitive.
+Example Client Name
+private-hostname

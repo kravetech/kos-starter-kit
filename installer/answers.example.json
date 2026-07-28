@@ -1,0 +1,55 @@
+{
+  "user": {
+    "preferred_name": "Alex",
+    "full_name": "",
+    "author_name": "Alex Example",
+    "technical_username": "alex",
+    "role": "Product and Engineering Lead",
+    "timezone": "UTC",
+    "locale": "en",
+    "language": "English",
+    "communication_style": "Direct, concise, practical"
+  },
+  "system": {
+    "name": "Test Knowledge OS",
+    "short_name": "TKOS",
+    "root_folder_name": "Test Knowledge OS",
+    "description": "A portable operating system for durable knowledge and active work.",
+    "motto": "Capture clearly. Execute deliberately.",
+    "installation_date": "2026-07-28"
+  },
+  "intended_use": ["business", "projects", "software-development", "personal-management", "research", "learning"],
+  "tools": ["obsidian", "vscode", "codex", "claude-code", "git"],
+  "privacy": {
+    "default_ai_access": "internal",
+    "restricted_folders": ["03 - Personal", "09 - Attachments"],
+    "business_ai_access": "internal",
+    "personal_ai_access": "restricted",
+    "linked_source_ai_access": "restricted",
+    "exclude_sensitive_automatically": true
+  },
+  "rhythm": {
+    "daily_review_time": "17:00",
+    "weekly_review_day": "Friday",
+    "monthly_review": true,
+    "daily_note_generation": true,
+    "inbox_processing": true,
+    "memory_maintenance": true,
+    "handoff_maintenance": true,
+    "git_review": true,
+    "project_health_checks": true
+  },
+  "installation": {
+    "mode": "standard",
+    "target_directory": "test-output/Test Knowledge OS",
+    "initialize_git": false,
+    "create_initial_commit": false,
+    "include_samples": true,
+    "include_gitkeep": true,
+    "enable_windows_scripts": true,
+    "enable_unix_scripts": true,
+    "configure_external_integrations": false,
+    "allow_overwrite": false,
+    "backup_before_migration": true
+  }
+}

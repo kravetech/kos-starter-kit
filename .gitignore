@@ -1,0 +1,32 @@
+# Local answers and configuration
+installer/answers.json
+installer/local-config.json
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+secrets/
+credentials/
+installer/private-terms.txt
+
+# Runtime and generated state
+logs/*
+!logs/.gitkeep
+test-output/*
+!test-output/.gitkeep
+build/*
+!build/.gitkeep
+00 - System/State/Cache/
+00 - System/Linked Sources/*.json
+node_modules/
+__pycache__/
+*.pyc
+
+# Local application state
+.DS_Store
+Thumbs.db
+.obsidian/workspace*
+.claude/settings.local.json

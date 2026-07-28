@@ -1,0 +1,31 @@
+version: 1.0.0
+budgets:
+  root_memory_tokens: 3000
+  root_handoff_tokens: 2000
+  warning_file_kb: 20
+  large_file_kb: 50
+  very_large_file_kb: 200
+always_loaded:
+  - AGENTS.md
+  - me.md
+project_loaded:
+  - 02 - Projects/Active/*/PROJECT-CONTEXT.md
+on_demand:
+  - ARCHITECTURE.md
+  - DESIGN.md
+  - PRODUCT.md
+  - CHANGELOG.md
+restricted:
+  - 03 - Personal/**
+  - 09 - Attachments/**
+never_auto_load:
+  - 00 - System/Reports/**
+  - 00 - System/State/**
+  - 00 - System/Linked Sources/**
+  - 99 - Archive/**
+  - "**/history/**"
+  - "**/*.log"
+  - "**/*.csv"
+  - "**/*.xml"
+  - "**/*.sqlite"
+  - "**/*.db"

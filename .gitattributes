@@ -1,0 +1,14 @@
+* text=auto
+
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# These templates intentionally use Markdown two-space hard line breaks.
+templates/automations/AUTOMATION-REGISTRY.md whitespace=-blank-at-eol
+templates/projects/Architecture-Decision-Record.md whitespace=-blank-at-eol
+templates/root/README.md whitespace=-blank-at-eol

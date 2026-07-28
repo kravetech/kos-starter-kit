@@ -1,0 +1,6 @@
+{
+  "reference_paths": [],
+  "protected_paths": [],
+  "default_target_parent": "",
+  "notes": "Copy to local-config.json for machine-local paths. This file is ignored by Git."
+}

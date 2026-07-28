@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Parse PowerShell
+        shell: pwsh
+        run: |
+          $findings = @()
+          Get-ChildItem -Recurse -Filter *.ps1 -File | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            $findings += $errors
+          }
+          if ($findings.Count) {
+            $findings | Format-List
+            exit 1
+          }
+
+      - name: Validate and install with PowerShell
+        shell: pwsh
+        run: |
+          $validation = Join-Path $env:RUNNER_TEMP "starter-validation.md"
+          $privacy = Join-Path $env:RUNNER_TEMP "starter-privacy.md"
+          $target = Join-Path $env:RUNNER_TEMP "Knowledge OS"
+          & ./scripts/validate-starter-kit.ps1 -StarterRoot . -Report $validation
+          & ./scripts/privacy-scan.ps1 -Root . -Report $privacy
+          & ./install.ps1 -Answers ./installer/answers.example.json -Target $target
+          & ./scripts/validate-installation.ps1 `
+            -InstallationRoot $target `
+            -Report (Join-Path $env:RUNNER_TEMP "install-validation.md")
+
+  ubuntu-python-bash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Validate shell and Python
+        run: |
+          shellcheck install.sh initialize.sh scripts/*.sh
+          python3 -m py_compile installer/install.py scripts/tooling.py
+          python3 scripts/tooling.py validate-starter \
+            --root . \
+            --report "$RUNNER_TEMP/starter-validation.md"
+          python3 scripts/tooling.py privacy \
+            --root . \
+            --report "$RUNNER_TEMP/starter-privacy.md"
+
+      - name: Install and validate
+        run: |
+          target="$RUNNER_TEMP/Knowledge OS"
+          python3 installer/install.py \
+            --answers installer/answers.example.json \
+            --target "$target"
+          python3 scripts/tooling.py validate-install \
+            --root "$target" \
+            --report "$RUNNER_TEMP/install-validation.md"
+
+      - name: Audit tracked release content
+        run: |
+          python3 scripts/tooling.py release-audit \
+            --root . \
+            --report "$RUNNER_TEMP/release-audit.md"
