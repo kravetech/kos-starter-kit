@@ -1,14 +1,16 @@
 {
-  "installer_version": "1.1.0",
-  "start_time": "",
-  "last_completed_phase": 0,
-  "selected_mode": "",
-  "target_path": "",
-  "answer_file": "",
-  "created_files": [],
-  "skipped_files": [],
-  "conflicts": [],
-  "errors": [],
-  "validation_results": {},
-  "completion_status": "not-started"
+  "schemaVersion": "1.0.0",
+  "edition": "community",
+  "communityVersion": "1.0.0",
+  "starterKitVersion": "1.2.0",
+  "installerVersion": "1.2.0",
+  "kosContractVersion": "1.0.0",
+  "profile": "standard",
+  "providers": [],
+  "capabilities": [],
+  "components": {},
+  "includeSamples": false,
+  "customModules": [],
+  "origin": "new",
+  "versionSource": "installer/release.json"
 }

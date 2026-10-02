@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceRevision": "3f31842",
+  "templates": [
+    {
+      "path": ".gitignore",
+      "sourceVersion": "1.1.0",
+      "text": ".env\n.env.*\n!.env.example\n*.key\n*.pem\n*.pfx\n*.p12\nsecrets/\ncredentials/\ninstaller/local-config.json\nlogs/*\n!logs/.gitkeep\n00 - System/State/\n00 - System/Reports/\n00 - System/Linked Sources/*.json\n00 - System/Installation/installer-state.json\n00 - System/Installation/INSTALLATION-REPORT.md\n00 - System/Installation/backups/\nnode_modules/\n.DS_Store\nThumbs.db\n.obsidian/workspace*\n"
+    },
+    {
+      "path": "AGENTS.md",
+      "sourceVersion": "1.1.0",
+      "text": "---\ntitle: \"{{system_short_name}} AI Router\"\ntype: ai-instruction\nstatus: active\nowner: \"{{preferred_name}}\"\ncreated: {{installation_date}}\nupdated: {{installation_date}}\nai_access: internal\nai_generated: true\nreview_status: draft\ncanonical: true\n---\n\n# {{system_short_name}} AI Router\n\n`AGENTS.md` is the canonical shared AI router. `CONTEXT-POLICY.md` is the retrieval and privacy authority.\n\n## Bootstrap\n\n1. Confirm the root by locating this file and `00 - System/Config/ai-context-manifest.yaml`.\n2. Read `me.md`.\n3. Classify the task.\n4. Load only the matching authority or selected project context.\n5. Stop loading when enough verified context exists.\n\n## Task Bundles\n\n- Quick task: `AGENTS.md`, `me.md`.\n- Normal active work: add root `memory.md` and `handoff.md`.\n- Active project: add `02 - Projects/Active/<Project>/PROJECT-CONTEXT.md`; add project `memory.md`/`handoff.md` only when present and needed.\n- Architecture/design/product: load only the matching root authority and relevant project context.\n- Business: load `01 - Business/Business-MOC.md` and the exact required file.\n\n## Default Exclusions\n\nNever broadly load reports, state, linked-source inventories, attachments, archives, histories, logs, credentials, secrets, entire daily history, entire project trees, or large generated data.\n\n## Write Rules\n\n- Preserve existing content and use reversible edits.\n- Never store credentials in Markdown.\n- Treat missing `ai_access` as restricted.\n- AI-generated operational knowledge starts as draft.\n- `memory.md` is durable and approved; `handoff.md` is current and replace-and-refresh.\n- Do not commit, publish, configure remotes, or push without explicit authorization.\n"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sourceVersion": "1.1.0",
+      "text": "# Claude Adapter\n\nUse `AGENTS.md` as the canonical router and `CONTEXT-POLICY.md` as policy. Apply Claude-specific tools only after task classification. Do not preload architecture, changelog, projects, history, reports, state, attachments, or linked-source inventories.\n"
+    },
+    {
+      "path": "CODEX.md",
+      "sourceVersion": "1.1.0",
+      "text": "# Codex Adapter\n\nUse `AGENTS.md` as the canonical router and `CONTEXT-POLICY.md` as policy. Validate repository context before edits, preserve unrelated changes, and use bounded search. Do not preload architecture, changelog, projects, history, reports, state, attachments, or linked-source inventories.\n"
+    },
+    {
+      "path": "CONTEXT-POLICY.md",
+      "sourceVersion": "1.1.0",
+      "text": "---\ntitle: AI Context Policy\ntype: ai-instruction\nstatus: active\nowner: \"{{preferred_name}}\"\ncreated: {{installation_date}}\nupdated: {{installation_date}}\nai_access: internal\nai_generated: true\nreview_status: draft\ncanonical: true\n---\n\n# AI Context Policy\n\n## Tiers\n\n- Tier 0: `AGENTS.md`, `me.md`.\n- Tier 1: root context or one active project's context.\n- Tier 2: task-specific authority or instruction.\n- Tier 3: architecture history, changelog slices, reports, state, archives, or troubleshooting evidence.\n\n## Progressive Loading\n\nClassify the task, inspect an MOC, search within a bounded scope, read only the relevant section, and stop when enough evidence exists.\n\n## Access\n\nAllowed `ai_access`: `public`, `internal`, `restricted`. Missing classification is restricted. Folder policy can narrow but not expand access.\n\n## Exclusions\n\nNever automatically load `00 - System/Reports`, `00 - System/State`, `00 - System/Linked Sources`, `09 - Attachments`, `99 - Archive`, history, logs, databases, generated inventories, or large data files.\n\n## Linked Sources\n\nExternal sources are read-only until explicitly configured. Use indexes and bounded summaries instead of raw inventories.\n"
+    },
+    {
+      "path": "TOKEN-OPTIMIZATION.md",
+      "sourceVersion": "1.1.0",
+      "text": "# Token Optimization\n\n## Defaults\n\n- Router plus working profile for quick tasks.\n- One project context at a time.\n- Authorities loaded only for matching tasks.\n- Metadata and headings before full content.\n\n## Limits\n\n- Root `memory.md`: target below 3,000 tokens; review at 4,000; hard warning at 6,000.\n- Root `handoff.md`: target below 2,000 tokens.\n- Warning file size: 20 KB.\n- Large file: 50 KB.\n- Very large file: 200 KB.\n\nFor large files, inspect headings, search relevant terms, read only the matching section, and prefer indexes or summaries.\n"
+    }
+  ]
+}

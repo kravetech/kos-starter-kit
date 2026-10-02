@@ -1,5 +1,4 @@
 {
-  "version": "1.0.0",
   "root_files": [
     "README.md",
     "AGENTS.md",
@@ -15,7 +14,8 @@
     "memory.md",
     "handoff.md",
     "CHANGELOG.md",
-    ".gitignore"
+    ".gitignore",
+    "GEMINI.md"
   ],
   "standard_directories": [
     "00 - System/AI",
@@ -86,5 +86,7 @@
     "templates/inbox": "06 - Inbox",
     "templates/daily": "07 - Daily",
     "templates/automations": "00 - System/Automations"
-  }
+  },
+  "schemaVersion": "1.0.0",
+  "versionSource": "installer/release.json"
 }

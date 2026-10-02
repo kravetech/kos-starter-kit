@@ -1,106 +1,82 @@
-# KOS Installer
+# KOS installer operating instructions
 
 ## Role
 
-You are the installer agent for the Knowledge OS starter kit.
+Operate the native installer as a conservative migration engineer.
+
+Installing KOS Starter Kit creates or updates a KOS Community installation that conforms to the shared KOS Core architecture.
 
 ## Objective
 
-Generate a clean, personalized, Markdown-first Knowledge OS using the supplied questionnaire answers and templates.
+Create new installations, reconcile upgrades and adopt Obsidian vaults without silently overwriting knowledge. Follow [v1.2 operations](docs/INSTALLER-V1.2.md).
 
 ## Inputs
 
-- `QUESTIONNAIRE.md`
-- `installer/questionnaire.schema.json`
-- optional JSON answer file
-- target directory
-- mode and execution flags
+Target, explicit operation, answers, optional profile/providers and item decisions. Version authority: `installer/release.json`.
 
 ## Constraints
 
-- Do not read or write any reference Knowledge OS.
-- Write only inside the resolved installation target and this starter kit's own runtime/report folders.
-- Reject a target equal to or nested within a protected/reference path.
-- Reject filesystem roots, the user home/profile directory, any target containing the starter-kit root, and targets that traverse links or reparse points.
-- Require migration mode for an existing non-empty target and resume mode with valid state for an interrupted installation.
-- Do not require a compiled application.
-- Preserve existing files unless overwrite is explicit.
+Never traverse links, replace unknown files, move notes or use overwrite-all. Do not regenerate existing vaults. Inspect the complete plan before approval.
 
 ## Privacy Rules
 
-Use neutral templates only. Never infer personal facts. Treat missing access classification as restricted. Keep secrets, credentials, attachments, state, reports, histories, and linked-source inventories out of normal AI context and Git.
+Never include secrets, personal answers or absolute machine paths in release assets. Redact diagnostics.
 
 ## Questionnaire
 
-Collect only missing required answers. Support interactive, JSON, default, dry-run, resume, and migration behavior. Validate against the schema before generation.
+Use `installer/questionnaire.schema.json`. Existing valid choices and unknown fields win. Arrays retain existing whole values; invalid types block.
 
 ## Installation Modes
 
-- Lean: system, projects, inbox, daily, templates, attachments, archive.
-- Standard: all numbered domains.
-- Business: Standard plus business/client/product templates.
-- Developer: Standard plus project and ADR scaffolds.
-- Creator: Standard plus content and review templates.
-- Custom: generate only selected modules while preserving root contracts.
-- Migration: compare into an existing target without silent overwrite.
+1. Create a new KOS (`new`).
+2. Upgrade existing KOS (`upgrade`).
+3. Enhance Obsidian (`enhance`, minimal or complete).
+4. KOS Pro (`pro`, blocked because commercial activation is not included).
+5. Validate (`validate`, read-only).
+6. Repair (`repair`, approved writes only).
 
 ## Dry Run
 
-Resolve the target, calculate selected directories/files, detect conflicts, and write a dry-run manifest. Do not generate the target.
+Use `-DryRun` or `--dry-run`. JSON is printed. Explicit exports use new destinations outside the target. No target mutations.
 
 ## File Generation
 
-Create the selected numbered structure, required root files, MOCs, system policies, installation state, and optional examples. Empty structural folders may use `.gitkeep`.
+Use the engines and shared catalog; never manually regenerate an existing vault.
 
 ## Template Processing
 
-Replace exact `{{key}}` tokens with validated answer values. Do not invent missing details. Fail validation if tokens remain in generated output.
+Render UTF-8 templates, reject unresolved tokens and hash resulting bytes. Release metadata supplies version tokens.
 
 ## Context Bootstrap
 
-Generate a lean router:
-
-- quick task: `AGENTS.md`, `me.md`
-- normal active work: add `memory.md`, `handoff.md`
-- active project: add only the selected project's context
-- architecture/design/product: load only the matching authority and relevant project context
-- never automatically load history, reports, state, attachments, full daily history, entire projects, inventories, or linked-source JSON
+AGENTS is canonical. Claude, Codex and Gemini share policy, capabilities, Skills, Power-Ups, user context and project routing.
 
 ## Automation Setup
 
-Create a manual registry. Every external integration must start `Not configured`. Never claim continuous monitoring.
+External integrations remain unconfigured. Never execute package code on installation.
 
 ## Git Initialization
 
-Only when selected: run `git init`, create no remote, never push, and commit only when explicitly selected. Generated remotes are private by default. Installation state, reports, and backups must remain ignored.
+Review content before any requested Git action. Never configure remotes or push. User knowledge stays private by default.
 
 ## Validation
 
-Validate required structure, JSON, adapter thinness, token rules, state/report generation, unresolved tokens, privacy boundaries, and external-automation status.
+Use read-only installation validation and release gates. Report stable identifiers/exit codes. Clean-install success does not establish release readiness.
 
 ## Conflict Handling
 
-Preserve existing files. Compare intended content, create `.new.md` or `.new` proposals when different, and record each conflict. Overwrite only with explicit permission.
+Show grouped conflicts and complete plans. Preserve knowledge; managed replacement requires item approval and backup. Manually review proposals; do not imply automatic semantic merging.
 
 ## Resume Behavior
 
-Read `00 - System/Installation/installer-state.json`, verify target/mode compatibility, and continue after the last completed phase. Never assume a partial phase completed.
+Automatic resume is blocked. Inspect interrupted journals, stop writers, review locks and rollback or reconcile before replanning.
 
 ## Rollback
 
-For migration, create a timestamped backup before writes when selected. For new installs, list every created file so rollback can remove only installer-owned outputs. Never delete automatically.
+Rollback by run ID restores only unchanged run output. Preserve later edits and user-owned knowledge/configuration. Exit 4 means incomplete recovery.
 
 ## Installation Report
 
-Write `00 - System/Installation/INSTALLATION-REPORT.md` with mode, target, created/skipped/conflict counts, validation, privacy result, first-day checklist, and exact next action.
+Material runs retain plans, journals, reports and required backups/proposals. Review findings, preserved items, required actions and recovery limits.
 
-## Execution
-
-Prefer the platform installer:
-
-```text
-PowerShell: ./install.ps1 -Answers <file>
-Bash: ./install.sh --answers <file>
-```
-
-If executing directly as an agent, follow every section above, use the same schemas/templates, run validation and privacy scans, save installer state, and provide the first-day checklist.
+New installation metadata must use `edition: community`. The legacy CLI token `core` is accepted only as a compatibility alias for the blocked `pro` operation; it does not identify KOS Core as an edition.

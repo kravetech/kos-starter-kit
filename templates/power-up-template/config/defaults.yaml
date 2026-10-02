@@ -1,0 +1,5 @@
+# Provider-neutral default configuration for kos-example.
+# Validate against config/schemas/ before shipping a change.
+
+workspace_mode: embedded-target
+review_required: true

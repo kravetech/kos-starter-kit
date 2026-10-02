@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pro-package",
+  "type": "object",
+  "required": [
+    "schema",
+    "schemaVersion",
+    "proVersion",
+    "compatibility",
+    "integrity",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "kos-pro/v1"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "proVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "compatibility": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "compatibility",
+      "type": "object",
+      "required": [
+        "min",
+        "maxExclusive"
+      ],
+      "properties": {
+        "min": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "maxExclusive": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "integrity": {
+      "type": "object"
+    },
+    "signature": {
+      "type": "object",
+      "required": [
+        "keyId",
+        "algorithm",
+        "value"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

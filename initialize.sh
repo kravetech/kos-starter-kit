@@ -16,7 +16,7 @@ while (($#)); do
     --resume) resume="true"; shift ;;
     --migration) migration="true"; shift ;;
     -h|--help)
-      printf '%s\n' "Usage: ./initialize.sh [--agent auto|codex|claude] [--answers FILE] [--dry-run] [--resume] [--migration]"
+      printf '%s\n' "Usage: ./initialize.sh [--agent auto|codex|claude|gemini] [--answers FILE] [--dry-run] [--resume] [--migration]"
       exit 0 ;;
     *) printf 'Unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -24,10 +24,12 @@ done
 
 if command -v codex >/dev/null 2>&1; then have_codex="true"; else have_codex="false"; fi
 if command -v claude >/dev/null 2>&1; then have_claude="true"; else have_claude="false"; fi
+if command -v gemini >/dev/null 2>&1; then have_gemini="true"; else have_gemini="false"; fi
 if [[ "$agent" == "auto" ]]; then
   if [[ "$have_codex" == "true" ]]; then agent="codex"
   elif [[ "$have_claude" == "true" ]]; then agent="claude"
-  else printf '%s\n' "ERROR: neither codex nor claude was found on PATH." >&2; exit 2
+  elif [[ "$have_gemini" == "true" ]]; then agent="gemini"
+  else printf '%s\n' "ERROR: no supported agent was found on PATH." >&2; exit 2
   fi
 fi
 if [[ "$agent" == "codex" && "$have_codex" != "true" ]]; then
@@ -37,6 +39,10 @@ fi
 if [[ "$agent" == "claude" && "$have_claude" != "true" ]]; then
   printf '%s\n' "ERROR: claude not found." >&2
   exit 2
+fi
+
+if [[ "$agent" == "gemini" && "$have_gemini" != "true" ]]; then
+  printf '%s\n' "ERROR: gemini not found." >&2; exit 2
 fi
 
 prompt="Read KOS-INSTALLER.md and execute the installation."
@@ -58,6 +64,8 @@ printf 'Starter root: %s\nAgent: %s\nAnswer file supplied: %s\nDry run: %s\nResu
 cd "$starter_root"
 if [[ "$agent" == "codex" ]]; then
   exec codex -C "$starter_root" "$prompt"
+elif [[ "$agent" == "gemini" ]]; then
+  exec gemini "$prompt"
 else
   exec claude --add-dir "$starter_root" "$prompt"
 fi

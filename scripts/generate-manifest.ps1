@@ -2,13 +2,16 @@
 param([string]$Root = (Split-Path -Parent $PSScriptRoot), [string]$Output)
 $ErrorActionPreference = "Stop"
 try {
+    . (Join-Path (Split-Path -Parent $PSScriptRoot) 'installer/engine.ps1')
     $manifestRoot = [System.IO.Path]::GetFullPath($Root)
     if (-not $Output) { $Output = Join-Path $manifestRoot "build\file-manifest.json" }
-    $files = @(Get-ChildItem -LiteralPath $manifestRoot -Recurse -File -Force | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } | Sort-Object FullName | ForEach-Object {
+    $allowlist=Read-KosJson (Get-KosSafe $manifestRoot 'installer/release-files.json')
+    $files = @($allowlist.files | Sort-Object | ForEach-Object {
+        $relative=$_;$file=Get-Item -LiteralPath (Get-KosSafe $manifestRoot $relative)
         [pscustomobject]@{
-            path=$_.FullName.Substring($manifestRoot.Length).TrimStart('\').Replace('\','/')
-            bytes=$_.Length
-            sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            path=$relative
+            bytes=$file.Length
+            sha256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         }
     })
     New-Item -ItemType Directory -Path (Split-Path -Parent $Output) -Force | Out-Null
