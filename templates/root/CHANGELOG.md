@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - {{installation_date}}
+## [{{starter_kit_version}}] - {{installation_date}}
 
 ### Added
 

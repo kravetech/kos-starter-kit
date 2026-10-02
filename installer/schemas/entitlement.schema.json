@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "entitlement",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "acquiredVersion",
+    "receiptId",
+    "perpetualUse"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acquiredVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "receiptId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "perpetualUse": {
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}

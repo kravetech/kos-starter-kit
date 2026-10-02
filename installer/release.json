@@ -1,0 +1,10 @@
+{
+  "starterKitVersion": "1.2.0",
+  "installerVersion": "1.2.0",
+  "edition": "community",
+  "communityVersion": "1.0.0",
+  "kosContractVersion": "1.0.0",
+  "schemaVersion": "1.0.0",
+  "adapterVersion": "1.0.0",
+  "supportedUpgradeVersions": ["1.0.0", "1.1.0", "1.2.0"]
+}

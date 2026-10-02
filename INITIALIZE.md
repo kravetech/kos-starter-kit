@@ -1,3 +1,7 @@
+# v1.2 operational authority
+
+For current commands and safety rules, follow [docs/INSTALLER-V1.2.md](docs/INSTALLER-V1.2.md). The older narrative below describes the initial clean-install workflow. Do not use overwrite-all, automatic resume, or direct template copying for upgrades.
+
 # Initialize
 
 1. Open a terminal in the starter-kit folder.

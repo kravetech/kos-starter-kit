@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "package",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "schema",
+    "type",
+    "id",
+    "name",
+    "version",
+    "creator",
+    "license",
+    "compatibility",
+    "supportedEditions",
+    "scope",
+    "permissions",
+    "dependencies",
+    "entrypoints",
+    "enabledByDefault",
+    "integrity",
+    "configurationSchema",
+    "defaults"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "schema": {
+      "enum": [
+        "kos-skill/v1",
+        "kos-powerup/v1",
+        "kos-package/v1"
+      ]
+    },
+    "type": {
+      "enum": [
+        "skill",
+        "powerup",
+        "adapter",
+        "integration",
+        "bundle"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "creator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compatibility": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "compatibility",
+      "type": "object",
+      "required": [
+        "min",
+        "maxExclusive"
+      ],
+      "properties": {
+        "min": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "maxExclusive": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "supportedEditions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "community",
+          "pro",
+          "enterprise",
+          "starter",
+          "core"
+        ],
+        "description": "Canonical editions are community, pro, and enterprise; starter and core are legacy compatibility values."
+      },
+      "minItems": 1
+    },
+    "scope": {
+      "enum": [
+        "global",
+        "project",
+        "both"
+      ]
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      }
+    },
+    "entrypoints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "enabledByDefault": {
+      "type": "boolean"
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "configurationSchema": {
+      "type": "object"
+    },
+    "defaults": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

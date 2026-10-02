@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "registry",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "packages"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "packages": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "activeVersion",
+          "versions"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "activeVersion": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "versions": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,7 +1,3 @@
-# License Notice
+# License notice
 
-Copyright 2026 Kraven.
-
-The Knowledge OS Starter Kit is licensed under the Apache License, Version 2.0. See `LICENSE` for the complete terms.
-
-Before publication, verify that `Kraven` is the intended public copyright-holder name.
+See [LICENSE](LICENSE) for canonical Apache-2.0 terms and [NOTICE](NOTICE) for existing public copyright attribution. Separately acquired packages retain their own licenses.

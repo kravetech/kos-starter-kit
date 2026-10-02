@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "asset",
+  "type": "object",
+  "required": [
+    "path",
+    "componentId",
+    "ownership",
+    "sourceVersion",
+    "installedHash",
+    "lastInstallerAction"
+  ],
+  "properties": {
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "componentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownership": {
+      "enum": [
+        "managed",
+        "managed-customizable",
+        "user-owned",
+        "generated",
+        "runtime",
+        "extension-owned"
+      ]
+    },
+    "sourceVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installedHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "lastInstallerAction": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": true
+}

@@ -43,6 +43,8 @@ try {
     $privateTerms = if (Test-Path -LiteralPath $denylistPath -PathType Leaf) {
         @(Get-Content -LiteralPath $denylistPath | Where-Object { $_.Trim() -and -not $_.TrimStart().StartsWith("#") } | ForEach-Object { $_.Trim() })
     } else { @() }
+    $publicProductTerms = @('Kraven Knowledge OS')
+    $privateTerms = @($privateTerms | Where-Object { $_ -notin $publicProductTerms })
     if ($privateTerms.Count -eq 0) {
         $findings += "WARN no local private-term denylist configured."
     }
@@ -54,14 +56,14 @@ try {
         $content = Get-Content -LiteralPath $path -Raw
         foreach ($term in $privateTerms) {
             if ($content.IndexOf($term, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-                $findings += "ERROR private denylist term ``$term`` in ``$relative``"
+                $findings += "ERROR private denylist match (redacted) in ``$relative``"
             }
         }
         if ($content -match '(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*[''"]?[A-Za-z0-9+/=_-]{12,}' -or
             $content -match '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----') {
             $findings += "ERROR potential secret-like value in ``$relative``"
         }
-        if ($content -match '(?i)(?:[A-Z]:\\[A-Za-z0-9][A-Za-z0-9 _.-]+(?:\\[A-Za-z0-9][A-Za-z0-9 _.-]*)*|/(?:Users|home)/[^/\s]+/)') {
+        if ($content -match '(?i)(?:(?<![A-Za-z0-9_])[A-Z]:\\[A-Za-z0-9][A-Za-z0-9 _.-]+(?:\\[A-Za-z0-9][A-Za-z0-9 _.-]*)*|/(?:Users|home)/[^/\s]+/)') {
             $findings += "ERROR absolute machine path in ``$relative``"
         }
         if ($relative.Replace("\", "/") -like ".github/workflows/*") {
@@ -76,14 +78,9 @@ try {
         $findings += "ERROR LICENSE is missing."
     }
     $architecture = Get-Content -LiteralPath (Join-Path $scanRoot "ARCHITECTURE.md") -Raw
-    $pythonInstaller = Get-Content -LiteralPath (Join-Path $scanRoot "installer\install.py") -Raw
-    $powerShellInstaller = Get-Content -LiteralPath (Join-Path $scanRoot "install.ps1") -Raw
+    $release = Get-Content -LiteralPath (Join-Path $scanRoot "installer/release.json") -Raw | ConvertFrom-Json
     $architectureVersion = [regex]::Match($architecture, '(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)').Groups[1].Value
-    $pythonVersion = [regex]::Match($pythonInstaller, '(?m)^VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"').Groups[1].Value
-    $powerShellVersion = [regex]::Match($powerShellInstaller, '(?m)^\$script:InstallerVersion\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"').Groups[1].Value
-    if (-not $architectureVersion -or $architectureVersion -ne $pythonVersion -or $architectureVersion -ne $powerShellVersion) {
-        $findings += "ERROR release versions are inconsistent: architecture=$architectureVersion, python=$pythonVersion, powershell=$powerShellVersion"
-    }
+    if ($architectureVersion -ne $release.starterKitVersion) { $findings += "ERROR architecture disagrees with installer/release.json" }
     $status = if (@($findings | Where-Object { $_ -like "ERROR*" }).Count -eq 0) { "PASS" } else { "FAIL" }
     if ($findings.Count -eq 0) { $findings += "Tracked release content passed path, privacy, license, and version checks." }
     $body = @("# Public Release Audit","","Generated: $([DateTimeOffset]::Now.ToString('o'))","Status: **$status**","","## Findings","")

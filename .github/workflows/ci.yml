@@ -3,81 +3,84 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  windows-powershell:
-    runs-on: windows-latest
+  safety:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Parse PowerShell
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Python migrations, packages, rollback, privacy, links and golden plans
+        run: python -m unittest discover -s tests -v
+      - name: Starter validation and release allowlist
+        run: |
+          python scripts/tooling.py validate-starter --root . --report test-output/ci-starter.md
+          python scripts/release.py
+      - name: PowerShell 7 native lifecycle
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $findings = @()
-          Get-ChildItem -Recurse -Filter *.ps1 -File | ForEach-Object {
+          ./tests/native-lifecycle.ps1 -FixtureRoot ./test-output/native-pwsh/vault
+          ./scripts/validate-starter-kit.ps1 -Report ./test-output/ci-native-starter.md
+          $errorsFound = @()
+          Get-ChildItem installer,scripts,tests -Recurse -Filter *.ps1 | ForEach-Object {
             $tokens = $null
-            $errors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile(
-              $_.FullName,
-              [ref]$tokens,
-              [ref]$errors
-            ) | Out-Null
-            $findings += $errors
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$parseErrors) | Out-Null
+            $errorsFound += $parseErrors
           }
-          if ($findings.Count) {
-            $findings | Format-List
-            exit 1
-          }
-
-      - name: Validate and install with PowerShell
-        shell: pwsh
+          if ($errorsFound.Count) { $errorsFound | Format-List; exit 1 }
+      - name: Windows PowerShell 5.1 native lifecycle
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/native-lifecycle.ps1 -FixtureRoot ./test-output/native-ps51/vault
+      - name: Bash syntax and clean installation
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
-          $validation = Join-Path $env:RUNNER_TEMP "starter-validation.md"
-          $privacy = Join-Path $env:RUNNER_TEMP "starter-privacy.md"
-          $target = Join-Path $env:RUNNER_TEMP "Knowledge OS"
-          & ./scripts/validate-starter-kit.ps1 -StarterRoot . -Report $validation
-          & ./scripts/privacy-scan.ps1 -Root . -Report $privacy
-          & ./install.ps1 -Answers ./installer/answers.example.json -Target $target
-          & ./scripts/validate-installation.ps1 `
-            -InstallationRoot $target `
-            -Report (Join-Path $env:RUNNER_TEMP "install-validation.md")
-
-  ubuntu-python-bash:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install ShellCheck
+          bash -n install.sh initialize.sh scripts/*.sh
+          bash install.sh --answers installer/answers.example.json --target test-output/bash-vault --operation new --approve
+          bash install.sh --target test-output/bash-vault --operation validate
+      - name: ShellCheck
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install --yes shellcheck
-
-      - name: Validate shell and Python
-        run: |
           shellcheck install.sh initialize.sh scripts/*.sh
-          python3 -m py_compile installer/install.py scripts/tooling.py
-          python3 scripts/tooling.py validate-starter \
-            --root . \
-            --report "$RUNNER_TEMP/starter-validation.md"
-          python3 scripts/tooling.py privacy \
-            --root . \
-            --report "$RUNNER_TEMP/starter-privacy.md"
+      - name: Freeze source candidate
+        run: python scripts/release.py --freeze
+      - name: Stage and test client folder
+        run: python scripts/release.py --stage --candidate auto
 
-      - name: Install and validate
+  release-archive:
+    needs: safety
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Freeze source, stage and test client folder, then build exact archive
         run: |
-          target="$RUNNER_TEMP/Knowledge OS"
-          python3 installer/install.py \
-            --answers installer/answers.example.json \
-            --target "$target"
-          python3 scripts/tooling.py validate-install \
-            --root "$target" \
-            --report "$RUNNER_TEMP/install-validation.md"
-
-      - name: Audit tracked release content
+          python scripts/release.py --freeze
+          python scripts/release.py --stage --candidate auto
+          python scripts/release.py --build --payload auto
+      - name: Smoke test extracted final archive
+        shell: bash
         run: |
-          python3 scripts/tooling.py release-audit \
-            --root . \
-            --report "$RUNNER_TEMP/release-audit.md"
+          mkdir -p test-output/archive-source
+          unzip -q build/kos-starter-kit-v*.zip -d test-output/archive-source
+          cd test-output/archive-source
+          bash install.sh --answers installer/answers.example.json --target ../archive-vault --operation new --approve
+          bash install.sh --target ../archive-vault --operation validate

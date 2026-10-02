@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "compatibility",
+  "type": "object",
+  "required": [
+    "min",
+    "maxExclusive"
+  ],
+  "properties": {
+    "min": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "maxExclusive": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "installation",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "edition",
+    "starterKitVersion",
+    "installerVersion",
+    "kosContractVersion",
+    "profile",
+    "capabilities",
+    "components"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "edition": {
+      "enum": [
+        "community",
+        "pro",
+        "enterprise",
+        "starter",
+        "core"
+      ],
+      "description": "Canonical values are community, pro, and enterprise. starter and core are accepted only for legacy state migration."
+    },
+    "starterKitVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "installerVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "kosContractVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "communityVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "KOS Community edition architecture version. Absent in states written before it was introduced; the next upgrade records it."
+    },
+    "coreVersion": {
+      "description": "Deprecated legacy commercial-edition field retained only for reading older state."
+    },
+    "profile": {
+      "enum": [
+        "standard",
+        "minimal",
+        "complete",
+        "lean",
+        "business",
+        "developer",
+        "creator",
+        "custom"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "components": {
+      "type": "object"
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "codex",
+          "claude",
+          "gemini"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

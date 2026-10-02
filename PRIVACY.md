@@ -25,7 +25,9 @@ External sources start unconfigured and read-only. Inventories are generated sta
 
 The starter kit does not copy private reference-system notes, identity content, memory, handoff state, companies, clients, employees, contacts, finance, health, credentials, projects, daily notes, reports, inventories, Git history, machine names, or reusable absolute paths.
 
-For a private build review, add known sensitive names to a local, ignored denylist or run an exact scoped search. The reusable scanner intentionally does not embed private reference identifiers.
+The exact public product name `Kraven Knowledge OS` is classified as public terminology by the privacy scanners. This exception does not permit personal names, private paths, organizations, or any other locally denied term.
+
+For a local privacy review, add known sensitive names to a local, ignored denylist or run an exact scoped search. The reusable scanner intentionally does not embed private reference identifiers.
 
 Copy `installer/private-terms.example.txt` to the ignored `installer/private-terms.txt`, replace its examples with private names, organizations, usernames, hostnames, and project identifiers, then run:
 
@@ -33,4 +35,4 @@ Copy `installer/private-terms.example.txt` to the ignored `installer/private-ter
 .\scripts\privacy-scan.ps1
 ```
 
-Before publication, stage the intended Git content and run `scripts/public-release-audit.ps1`. Git ignore rules do not protect manually created archives or force-added files.
+Review any installation report before sharing it; the report may contain local paths and configuration findings.

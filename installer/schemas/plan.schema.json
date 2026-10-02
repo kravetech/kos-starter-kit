@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "plan",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "operation",
+    "targetType",
+    "items"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targetType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "classification",
+          "action"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

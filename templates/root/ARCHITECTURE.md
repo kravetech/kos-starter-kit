@@ -2,7 +2,9 @@
 title: "{{system_name}} Architecture"
 type: architecture
 status: active
-version: 1.0.0
+version: {{starter_kit_version}}
+community_version: {{community_version}}
+kos_contract_version: {{kos_contract_version}}
 owner: "{{preferred_name}}"
 created: {{installation_date}}
 updated: {{installation_date}}
@@ -16,7 +18,8 @@ canonical: true
 
 ## Release
 
-Version `1.0.0`.
+KOS Community edition `{{community_version}}`, bootstrapped by KOS Starter Kit `{{starter_kit_version}}`
+and conforming to KOS Core contract `{{kos_contract_version}}`.
 
 ## Purpose
 

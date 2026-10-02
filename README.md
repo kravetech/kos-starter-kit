@@ -1,6 +1,20 @@
-# Knowledge OS Starter Kit
+# KOS Starter Kit
 
-Open-source, Markdown-driven installer for creating a portable Knowledge OS for business, projects, personal work, research, learning, and AI-assisted execution.
+The official open-source bootstrap distribution for KOS Community, built on the shared KOS Core architecture.
+
+KOS Starter Kit provides a Markdown-first, AI-ready installer for creating a portable Knowledge OS for business, projects, personal work, research, learning, and AI-assisted execution.
+
+## Where This Fits
+
+**Kraven Knowledge OS (KOS)** is the overall product family:
+
+- **KOS Core** — shared technical architecture and compatibility contract.
+- **KOS Community** — free and open-source edition.
+  - **KOS Starter Kit** — official open-source bootstrap distribution.
+- **KOS Pro** — separately licensed commercial edition.
+- **KOS Enterprise** — planned organizational and multi-user edition.
+
+KOS Community remains independently useful and does not require a KOS Pro entitlement.
 
 ## What It Generates
 
@@ -53,16 +67,18 @@ Generated Knowledge OS repositories are private by default. They may contain ide
 - `QUESTIONNAIRE.md`: interactive and answer-file questions.
 - `installer/`: schema, examples, state template, and installation engine.
 - `templates/`: neutral source templates.
-- `scripts/`: validation, privacy, and manifest utilities.
-- `reports/`: design analysis and build evidence.
-- `test-output/`: disposable synthetic installations.
+- `scripts/`: installation validation, privacy, manifest, and Power-Up utilities.
 
 ## Status
 
-Public-release candidate. Complete [PUBLICATION.md](PUBLICATION.md) before the initial public push.
+Starter Kit 1.2.0 targets KOS Community 1.0.0 and KOS Core contract 1.0.0. Follow [INSTALL.md](INSTALL.md) for current installation and upgrade commands.
 
 ## License
 
 This project is licensed under the Apache License 2.0.
 
 See the [LICENSE](LICENSE) file for the full license text and the [NOTICE](NOTICE) file for attribution information.
+
+## v1.2 safe operations
+
+See [installation, upgrade and recovery](docs/INSTALLER-V1.2.md) and [local packages](docs/PACKAGES-V1.md). Start with a dry-run. New installs create; upgrades reconcile; Obsidian enhancements adopt. The public installer does not implement KOS Pro activation.

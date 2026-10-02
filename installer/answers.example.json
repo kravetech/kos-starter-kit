@@ -18,11 +18,27 @@
     "motto": "Capture clearly. Execute deliberately.",
     "installation_date": "2026-07-28"
   },
-  "intended_use": ["business", "projects", "software-development", "personal-management", "research", "learning"],
-  "tools": ["obsidian", "vscode", "codex", "claude-code", "git"],
+  "intended_use": [
+    "business",
+    "projects",
+    "software-development",
+    "personal-management",
+    "research",
+    "learning"
+  ],
+  "tools": [
+    "obsidian",
+    "vscode",
+    "codex",
+    "claude-code",
+    "git"
+  ],
   "privacy": {
     "default_ai_access": "internal",
-    "restricted_folders": ["03 - Personal", "09 - Attachments"],
+    "restricted_folders": [
+      "03 - Personal",
+      "09 - Attachments"
+    ],
     "business_ai_access": "internal",
     "personal_ai_access": "restricted",
     "linked_source_ai_access": "restricted",
@@ -50,6 +66,19 @@
     "enable_unix_scripts": true,
     "configure_external_integrations": false,
     "allow_overwrite": false,
-    "backup_before_migration": true
+    "providers": [
+      "codex",
+      "claude"
+    ]
+  },
+  "conflictPolicy": {
+    "identical": "skip",
+    "olderManaged": "update",
+    "userModified": "preserve-and-propose",
+    "pathConflict": "stop",
+    "semanticDuplicate": "stop",
+    "configConflict": "merge-existing-priority",
+    "securityConflict": "stop",
+    "unknown": "stop"
   }
 }
