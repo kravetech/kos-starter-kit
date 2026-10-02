@@ -3,10 +3,12 @@ title: Knowledge OS Starter Kit Architecture
 type: architecture
 status: active
 area: system
-version: 1.1.0
+version: 1.2.0
+community_version: 1.0.0
+kos_contract_version: 1.0.0
 author: Kraven
 created: 2026-07-15
-updated: 2026-07-28
+updated: 2026-09-29
 tags:
   - knowledge-os
   - architecture
@@ -25,15 +27,29 @@ related:
 
 | Field | Value |
 | --- | --- |
-| System | Knowledge OS (KOS) Starter Kit |
-| Version | `v1.1.0` |
+| System | KOS Starter Kit |
+| Version | `v1.2.0` |
+| Community version | `1.0.0` |
+| KOS Core contract | `1.0.0` |
 | Author | `Kraven` |
-| Release status | Private starter-kit architecture baseline |
-| Release date | 2026-07-28 |
+| Release status | Repository tags and GitHub Releases record published state |
+| Release date | See the corresponding GitHub Release |
 
 ## Purpose
 
-Knowledge OS is an Obsidian-based operating system for durable knowledge, business operations, projects, personal context, research, periodic reviews, and AI-assisted work. This document defines the architecture contract that the starter kit implements and generates.
+Kraven Knowledge OS (KOS) is an Obsidian-based operating system for durable knowledge, business operations, projects, personal context, research, periodic reviews, and AI-assisted work. KOS Starter Kit is the official open-source bootstrap distribution for KOS Community. This document defines how the Starter Kit implements the shared KOS Core architecture and compatibility contract.
+
+## Product Hierarchy
+
+| Layer | Meaning |
+| --- | --- |
+| KOS Core | Shared technical architecture and compatibility contract; not an edition |
+| KOS Community | Free and open-source edition |
+| KOS Starter Kit | Official open-source bootstrap distribution for KOS Community |
+| KOS Pro | Separately licensed commercial edition |
+| KOS Enterprise | Planned organizational and multi-user edition |
+
+The Starter Kit remains independently distributable under Apache-2.0. Commercial KOS editions do not retroactively change the license terms of released Starter Kit versions.
 
 The architecture separates:
 
@@ -165,7 +181,16 @@ Validate privacy, structure, and bootstrap rules
 Write installation report
 ```
 
-Supported modes must include interactive, answer-file, dry-run, resume, standard, lean, creator, business, developer, custom, and migration modes. Existing customized files are preserved by default; proposed replacements use a `.new.md` suffix unless overwrite is explicitly enabled.
+The 1.2.0 installer supports interactive and answer-file input, dry-run plans,
+new installation, supported Starter upgrades, and additive Obsidian enhancement
+with selected profiles. Existing-vault writes require explicit approval.
+Customized files are preserved or proposed for review; global overwrite and
+automatic resume are rejected. Pro vaults are not Community migration targets.
+Existing-vault plans audit common Obsidian wikilinks, embeds and Markdown links
+against files the installer would add. A newly ambiguous or redirected resolved
+link blocks apply. The audit is bounded and does not replace an in-app Obsidian
+review. A full vault snapshot must be verified outside the target before an
+upgrade or enhancement; transaction backups cover only changed files.
 
 ## Token-Efficient Bootstrap
 
@@ -379,6 +404,25 @@ MAJOR.MINOR.PATCH
 | `MINOR` | A backward-compatible domain, template, automation, or workflow capability is added |
 | `PATCH` | Documentation, template, script, or structure defects are corrected without changing the public contract |
 
+### Version lines
+
+`installer/release.json` is the single source for every version below. Each line moves independently.
+
+| Field | Tracks | Increment when |
+| --- | --- | --- |
+| `starterKitVersion` | The distribution: installer, scripts, documentation, packaging | Any released change to this repository |
+| `installerVersion` | Installer engines and operations | Installer behavior changes |
+| `communityVersion` | The KOS Community edition architecture a vault receives: domains, managed templates, root contract files, project contract, edition workflows | What is installed into a vault changes, using the MAJOR/MINOR/PATCH rules above |
+| `kosContractVersion` | The shared KOS Core compatibility contract that Community conforms to | KOS Core publishes a new contract; the Starter Kit consumes it and does not define it |
+| `schemaVersion` | Machine-readable state, plan and manifest schemas | A schema changes shape |
+| `adapterVersion` | Provider adapter files for Codex, Claude and Gemini | Adapter content changes |
+
+A Starter Kit release that changes only the installer or documentation keeps the same `communityVersion`. Every installed vault records `edition`, `communityVersion`, `starterKitVersion`, `installerVersion` and `kosContractVersion` in `00 - System/Installation/kos-installation.json`, and its generated `README.md` and `ARCHITECTURE.md` state the same values. Upgrades refuse to move a vault to an older Community or contract version. `python scripts/release.py` fails when any declared version drifts from `installer/release.json`.
+
+For an unpublished candidate, record notable changes under its Unreleased changelog heading without incrementing the version for every edit. After publication, never replace a published version or artifact with different bytes: make the next release a PATCH for a compatible fix, a MINOR for a compatible feature, or a MAJOR for an incompatible contract change. Git history records source changes; `CHANGELOG.md` records customer-visible changes; the release archive hash identifies the exact distributed bytes. KOS Pro has its own product version authority and changelog and does not advance in lockstep with Starter Kit or Community.
+
+### Tags
+
 Release tags must use the `vMAJOR.MINOR.PATCH` form, starting with `v1.0.0`. Pre-releases may use identifiers such as `v1.1.0-alpha.1` or `v2.0.0-rc.1`.
 
 Each release should:
@@ -387,11 +431,11 @@ Each release should:
 2. Record user-visible changes in a root `CHANGELOG.md`.
 3. Validate templates and initialization scripts against a clean vault.
 4. Confirm that private data, generated state, and credentials are excluded.
-5. Create an annotated Git tag matching the documented version.
+5. After exact artifact review and owner authorization, create an annotated Git tag matching the documented version.
 
 ## Distribution and Publication Boundary
 
-The starter kit source is prepared for public distribution under Apache-2.0. Publication still requires the owner-controlled release gate in `PUBLICATION.md`, including privacy validation of the exact staged Git content. Generated Knowledge OS instances remain private by default. The following paths require sanitization or exclusion from any public release:
+The starter kit source is prepared for public distribution under Apache-2.0. Publication still requires the owner-controlled release gate in `PUBLICATION.md`, including privacy validation of the exact staged Git content. The audited source is frozen into one fingerprinted candidate folder before final tests. The approved client files are then staged in a separate folder and installed from that folder for validation. The client ZIP is assembled only from those tested payload bytes; maintainer procedures and test sources remain outside that ZIP. Generated Knowledge OS instances remain private by default. The following paths require sanitization or exclusion from any public release:
 
 | Path or content | Recommendation |
 | --- | --- |
@@ -408,9 +452,9 @@ The starter kit source is prepared for public distribution under Apache-2.0. Pub
 | Starter-kit `logs/`, `build/`, `test-output/` | Exclude from release archives, not only from Git |
 | Absolute machine paths in any document | Replace with placeholders such as `<starter-kit-root>` |
 
-## Architecture Contract for v1.1.0
+## Community Architecture Contract
 
-The following are stable in `v1.1.0`:
+The following are stable in KOS Community `1.0.0`, distributed by Starter Kit `v1.2.0` on KOS Core contract `1.0.0`:
 
 - numbered top-level domains from `00` through `09`, plus `99 - Archive`;
 - Markdown-first, Obsidian-compatible storage;
@@ -423,4 +467,10 @@ The following are stable in `v1.1.0`:
 - Markdown-driven installation through Codex or Claude;
 - progressive context loading and thin tool adapters.
 
-Changes that break these guarantees require a new major version.
+The shared Core baseline is 1.0.0. Community records it as `kosContractVersion: 1.0.0`; Pro records Core `1.0.0` and the compatibility major as `core_contract_version: 1`. This alignment does not certify package-schema interoperability or cross-edition migration. The Starter Kit Pro operation stays blocked; supported Community-to-Pro transition is planned for Pro 1.1.0. Unreleased staging vaults previously stamped `1.1.0` are blocked for review rather than silently downgraded.
+
+Changes that break these guarantees require a new major Community version.
+
+## Installer version contract
+
+`installer/release.json` is authoritative. See [v1.2 operations](docs/INSTALLER-V1.2.md) and [package boundaries](docs/PACKAGES-V1.md). The Starter Kit version is independent of the KOS Core contract, schemas, provider adapters, packages, and commercial edition release lines.

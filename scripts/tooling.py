@@ -7,10 +7,13 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).absolute().parents[1] / "installer"))
+from safety import Blocked, inventory, safe, STATE
 
 REQUIRED_PROJECT_FILES = [
     "README.md", "INSTALL.md", "INITIALIZE.md", "KOS-INSTALLER.md", "QUESTIONNAIRE.md",
@@ -30,7 +33,7 @@ REQUIRED_PROJECT_DIRS = [
     "installer", "templates/root", "templates/system", "templates/business", "templates/projects",
     "templates/personal", "templates/hobbies", "templates/knowledge", "templates/inbox",
     "templates/daily", "templates/attachments", "templates/archive", "templates/automations",
-    "scripts", "reports", "examples", "logs", "build", "test-output",
+    "scripts", "examples",
 ]
 INSTALL_HEADINGS = [
     "Role", "Objective", "Inputs", "Constraints", "Privacy Rules", "Questionnaire",
@@ -43,7 +46,7 @@ SECRET_PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
 ]
 ABSOLUTE_PATH = re.compile(
-    r"(?i)(?:[A-Z]:\\[A-Za-z0-9][A-Za-z0-9 _.-]+(?:\\[A-Za-z0-9][A-Za-z0-9 _.-]*)*|/(?:Users|home)/[^/\s]+/)"
+    r"(?i)(?:(?<![A-Za-z0-9_])[A-Z]:\\[A-Za-z0-9][A-Za-z0-9 _.-]+(?:\\[A-Za-z0-9][A-Za-z0-9 _.-]*)*|/(?:Users|home)/[^/\s]+/)"
 )
 TEXT_SUFFIXES = {".md", ".json", ".yaml", ".yml", ".ps1", ".sh", ".py", ".txt", ".gitignore"}
 FORBIDDEN_RELEASE_PATHS = {
@@ -58,8 +61,11 @@ ALLOWED_RELEASE_KEEP_FILES = {"logs/.gitkeep", "build/.gitkeep", "test-output/.g
 def text_files(root: Path, include_generated: bool = False):
     excluded = {".git", "__pycache__", ".claude"}
     if not include_generated:
-        excluded |= {"logs", "build", "test-output"}
-    for path in root.rglob("*"):
+        excluded |= {"logs", "build", "test-output", "output", "tmp"}
+    for item in inventory(root, excluded=excluded):
+        if item["kind"] != "file":
+            continue
+        path = safe(root, item["path"])
         if path == root / "installer" / "private-terms.txt":
             continue
         if not path.is_file() or any(part in excluded for part in path.parts):
@@ -72,10 +78,13 @@ def load_sensitive_terms(root: Path) -> list[str]:
     denylist = root / "installer" / "private-terms.txt"
     if not denylist.is_file():
         return []
+    public_product_terms = {"kraven knowledge os"}
     return [
         line.strip()
         for line in denylist.read_text(encoding="utf-8-sig").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
+        if line.strip()
+        and not line.lstrip().startswith("#")
+        and line.strip().lower() not in public_product_terms
     ]
 
 
@@ -110,14 +119,15 @@ def validate_starter(root: Path, report: Path) -> int:
         if (root / adapter).exists() and len((root / adapter).read_text(encoding="utf-8").splitlines()) > 40:
             findings.append(f"ERROR adapter is not thin: `{adapter}`")
     template_tokens: set[str] = set()
-    for path in (root / "templates").rglob("*"):
+    for asset in json.loads((root / "installer/assets.json").read_text(encoding="utf-8-sig"))["assets"]:
+        path = root / asset["source"]
         if path.is_file():
             template_tokens.update(re.findall(r"\{\{([a-z0-9_]+)\}\}", path.read_text(encoding="utf-8", errors="replace")))
     example = json.loads((root / "installer/answers.example.json").read_text(encoding="utf-8"))
     available = set()
     for section in ("user", "system", "privacy", "rhythm"):
         available.update(example.get(section, {}).keys())
-    available |= {"system_name", "system_short_name", "system_description"}
+    available |= {"system_name", "system_short_name", "system_description", "starter_kit_version", "community_version", "kos_contract_version"}
     for token in sorted(template_tokens - available):
         findings.append(f"ERROR template token has no answer mapping: `{{{{{token}}}}}`")
     for script in ("install.ps1", "initialize.ps1"):
@@ -129,7 +139,17 @@ def validate_starter(root: Path, report: Path) -> int:
     return 0 if status == "PASS" else 2
 
 
-def validate_install(root: Path, report: Path) -> int:
+def validate_install(root: Path, report: Path | None) -> int:
+    if safe(root, STATE).is_file():
+        from validation import validate_installation
+        result = validate_installation(root)
+        findings = [f"{item['severity'].upper()} {item['rule']}: `{item['path']}`" for item in result]
+        status = "FAIL" if any(item['severity'] == 'error' for item in result) else "PASS"
+        if report:
+            write_report(report, "Installation Validation Report", status, findings)
+        else:
+            print(json.dumps({"status": status, "findings": result}, indent=2))
+        return 2 if status == "FAIL" else 0
     findings: list[str] = []
     required_files = ["README.md", "AGENTS.md", "CLAUDE.md", "CODEX.md", "ARCHITECTURE.md", "CONTEXT-POLICY.md", "TOKEN-OPTIMIZATION.md", "memory.md", "handoff.md", "00 - System/Installation/installer-state.json", "00 - System/Installation/INSTALLATION-REPORT.md", "00 - System/Automations/AUTOMATION-REGISTRY.md"]
     required_dirs = ["00 - System", "01 - Business", "02 - Projects", "03 - Personal", "04 - Hobbies", "05 - Knowledge", "06 - Inbox", "07 - Daily", "08 - Templates", "09 - Attachments", "99 - Archive"]
@@ -149,7 +169,10 @@ def validate_install(root: Path, report: Path) -> int:
     if registry.exists() and "Status: Not configured" not in registry.read_text(encoding="utf-8"):
         findings.append("ERROR external automations are not explicitly unconfigured")
     status = "PASS" if not any(item.startswith("ERROR") for item in findings) else "FAIL"
-    write_report(report, "Installation Validation Report", status, findings)
+    if report:
+        write_report(report, "Installation Validation Report", status, findings)
+    else:
+        print(json.dumps({"status": status, "findings": findings}, indent=2))
     return 0 if status == "PASS" else 2
 
 
@@ -160,7 +183,7 @@ def scan_privacy_files(root: Path, paths: list[Path], sensitive_terms: list[str]
         text = path.read_text(encoding="utf-8", errors="replace")
         for term in sensitive_terms:
             if term.lower() in text.lower():
-                findings.append(f"ERROR private reference term `{term}` in `{relative}`")
+                findings.append(f"ERROR private denylist match (redacted) in `{relative}`")
         for pattern in SECRET_PATTERNS:
             if pattern.search(text):
                 findings.append(f"ERROR potential secret-like value in `{relative}`")
@@ -236,14 +259,10 @@ def release_audit(root: Path, report: Path) -> int:
                 findings.append(f"ERROR GitHub Action is not pinned to a full commit SHA in `{normalized}`: `{match.group(0).strip()}`")
     if not (root / "LICENSE").is_file():
         findings.append("ERROR `LICENSE` is missing")
-    versions = {
-        "architecture": re.search(r"(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)", (root / "ARCHITECTURE.md").read_text(encoding="utf-8")),
-        "python": re.search(r'(?m)^VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', (root / "installer/install.py").read_text(encoding="utf-8")),
-        "powershell": re.search(r'(?m)^\$script:InstallerVersion\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', (root / "install.ps1").read_text(encoding="utf-8")),
-    }
-    resolved_versions = {name: match.group(1) if match else None for name, match in versions.items()}
-    if None in resolved_versions.values() or len(set(resolved_versions.values())) != 1:
-        findings.append(f"ERROR release versions are inconsistent: {resolved_versions}")
+    release = json.loads((root / "installer/release.json").read_text(encoding="utf-8-sig"))
+    architecture = re.search(r"(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)", (root / "ARCHITECTURE.md").read_text(encoding="utf-8"))
+    if not architecture or architecture[1] != release["starterKitVersion"]:
+        findings.append("ERROR architecture disagrees with installer/release.json")
     status = "PASS" if not any(item.startswith("ERROR") for item in findings) else "FAIL"
     if not findings:
         findings.append("Tracked release content passed path, privacy, license, and version checks.")
@@ -253,42 +272,142 @@ def release_audit(root: Path, report: Path) -> int:
 
 def manifest(root: Path, output: Path) -> int:
     files = []
-    for path in sorted(root.rglob("*")):
-        if path.is_file() and ".git" not in path.parts:
-            data = path.read_bytes()
-            files.append({
-                "path": str(path.relative_to(root)).replace("\\", "/"),
-                "bytes": len(data),
-                "sha256": hashlib.sha256(data).hexdigest(),
-            })
+    allowlist = json.loads(safe(root, "installer/release-files.json").read_text(encoding="utf-8-sig"))["files"]
+    for rel in sorted(allowlist):
+        path = safe(root, rel)
+        data = path.read_bytes()
+        files.append({"path": rel, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps({"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(), "files": files}, indent=2) + "\n", encoding="utf-8")
     return 0
 
 
+def powerups(root: Path, command: str, home_override: Path | None) -> int:
+    """Read-only compatibility discovery for legacy YAML Power-Ups.
+
+    Package installation and registration are handled by the reviewed v1.2
+    package operation, never by this discovery interface.
+    """
+    from powerups import discover, load_yaml_lite, validate_registry_dict
+
+    root = Path(os.path.abspath(root))
+    safe(root)
+    power_ups_dir = "00 - System/Power-Ups"
+    registry_path = safe(root, power_ups_dir + "/registry.yaml")
+    if not registry_path.is_file():
+        print(f"SKIPPED: Power-Ups support is not enabled for this installation: {root}")
+        return 0
+    registry = load_yaml_lite(registry_path.read_text(encoding="utf-8"))
+    errors, warnings = validate_registry_dict(registry)
+    for item in errors:
+        print("ERROR " + item)
+    for item in warnings:
+        print("WARN " + item)
+    if errors:
+        return 2
+    entries = registry.get("power_ups") or []
+
+    if command == "powerups-status":
+        if not entries:
+            print("No Power-Ups registered.")
+        for entry in entries:
+            print(f"{entry['id']}: status={entry['status']} version={entry['version']} mode={entry['installation_mode']}")
+            manifest_rel = str(entry.get("manifest") or "")
+            try:
+                manifest_path = safe(root, power_ups_dir + "/" + manifest_rel)
+                if not manifest_path.is_file():
+                    print(f"  WARN local manifest copy missing: {manifest_rel}")
+            except ValueError:
+                print(f"  WARN local manifest path is unsafe: {manifest_rel}")
+            install_path = str(entry.get("install_path") or "")
+            if install_path:
+                expanded = os.path.expandvars(install_path)
+                missing = "${" in expanded or not Path(expanded).is_absolute()
+                if not missing:
+                    try:
+                        runtime = Path(expanded)
+                        safe(runtime)
+                        missing = not runtime.exists()
+                    except Blocked:
+                        missing = True
+                if missing:
+                    print(f"  WARN external runtime not found at {install_path}")
+        return 0
+
+    settings_path = safe(root, power_ups_dir + "/settings.yaml")
+    settings = load_yaml_lite(settings_path.read_text(encoding="utf-8")) if settings_path.is_file() else {}
+    section = settings.get("power_ups") or {}
+    if not isinstance(section, dict):
+        print("ERROR settings.yaml power_ups must be a mapping")
+        return 2
+    home = home_override
+    if home is None:
+        env_name = section.get("home_environment_variable")
+        home = os.environ.get(env_name) if isinstance(env_name, str) and env_name else None
+    if not home:
+        configured = section.get("home_directory")
+        home = configured if isinstance(configured, str) and configured and not configured.startswith("<") else None
+    if not home:
+        print("WARN no resolvable Power-Ups home directory (pass --home, set the configured environment variable, or set settings.yaml power_ups.home_directory)")
+        return 0
+    home_path = Path(os.path.abspath(home))
+    safe(home_path)
+    installed_state = safe(root, STATE)
+    kos_version = None
+    if installed_state.is_file():
+        try:
+            candidate = json.loads(installed_state.read_text(encoding="utf-8-sig")).get("kosContractVersion")
+            if isinstance(candidate, str) and re.fullmatch(r"\d+\.\d+\.\d+", candidate):
+                kos_version = candidate
+        except (ValueError, AttributeError):
+            pass
+    if kos_version is None:
+        architecture = safe(root, "ARCHITECTURE.md")
+        if architecture.is_file():
+            match = re.search(r"(?m)^version:\s*(\d+\.\d+\.\d+)\s*$", architecture.read_text(encoding="utf-8"))
+            kos_version = match.group(1) if match else None
+    candidates = discover(home_path, {str(item["id"]) for item in entries}, kos_version)
+    if not candidates:
+        print(f"No candidate Power-Ups found under {home_path}")
+        return 0
+    for candidate in candidates:
+        print(f"[{candidate['status']}] {candidate['id']} ({candidate['path']})")
+        for item in candidate["errors"]:
+            print("    ERROR " + item)
+        for item in candidate["warnings"]:
+            print("    WARN  " + item)
+    return 2 if any(item["status"] == "ERROR" for item in candidates) else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["validate-starter", "validate-install", "privacy", "release-audit", "manifest"])
+    parser.add_argument("command", choices=["validate-starter", "validate-install", "privacy", "release-audit", "manifest", "powerups-discover", "powerups-status"])
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--include-generated", action="store_true")
+    parser.add_argument("--home", type=Path)
     args = parser.parse_args()
     root = args.root.resolve()
     if args.command == "validate-starter":
         return validate_starter(root, (args.report or root / "reports/VALIDATION-REPORT.md").resolve())
     if args.command == "validate-install":
-        return validate_install(root, (args.report or root / "VALIDATION-REPORT.md").resolve())
+        return validate_install(root, args.report.resolve() if args.report else None)
     if args.command == "privacy":
         return privacy(root, (args.report or root / "PRIVACY-SCAN.md").resolve(), args.include_generated)
     if args.command == "release-audit":
         return release_audit(root, (args.report or root / "reports/RELEASE-AUDIT.md").resolve())
+    if args.command.startswith("powerups-"):
+        return powerups(args.root, args.command, args.home)
     return manifest(root, (args.output or root / "build/file-manifest.json").resolve())
 
 
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
+    except Blocked as exc:
+        print(f"BLOCKED: {exc}", file=sys.stderr)
+        raise SystemExit(2)
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         raise SystemExit(3)

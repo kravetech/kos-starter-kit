@@ -1,0 +1,61 @@
+schema_version: "1.0"
+
+id: kos-example
+name: Example Power-Up
+description: <description>
+version: 0.1.0
+publisher: <publisher>
+license: Apache-2.0
+
+kos_compatibility:
+  minimum_version: 1.0.0
+  maximum_version: null
+
+installation:
+  supported_modes:
+    - external
+    - embedded
+  default_mode: external
+  requires_shared_runtime: false
+
+workspace:
+  supported_modes:
+    - embedded-target
+    - centralized
+  default_mode: embedded-target
+
+agents:
+  canonical_skill: ".agents/skills/kos-example/SKILL.md"
+  supported:
+    - codex
+    - claude-code
+    - gemini-cli
+    - generic-filesystem-agent
+
+capabilities:
+  - example-capability
+
+permissions:
+  read:
+    - selected-kos-folders
+    - power-up-workspace
+  write:
+    - power-up-workspace
+    - kos-power-up-registry
+  canonical_kos_writes:
+    allowed: false
+    requires_explicit_approval: true
+
+dependencies:
+  runtime: []
+  optional: []
+
+lifecycle:
+  install_command: "installer/install.ps1"
+  initialize_command: "installer/initialize.ps1"
+  upgrade_command: "installer/upgrade.ps1"
+  uninstall_command: "installer/uninstall.ps1"
+
+integrity:
+  checksum_file: null
+  signature_file: null

@@ -16,7 +16,7 @@ try {
     $requiredDirectories = @(
         "installer","templates\root","templates\system","templates\business","templates\projects","templates\personal",
         "templates\hobbies","templates\knowledge","templates\inbox","templates\daily","templates\attachments",
-        "templates\archive","templates\automations","scripts","reports","examples","logs","build","test-output"
+        "templates\archive","templates\automations","scripts","examples"
     )
     $findings = @()
     foreach ($relative in $requiredFiles) { if (-not (Test-Path -LiteralPath (Join-Path $root $relative) -PathType Leaf)) { $findings += "ERROR missing required file: ``$relative``" } }
@@ -35,10 +35,11 @@ try {
     $example = Get-Content -LiteralPath (Join-Path $root "installer\answers.example.json") -Raw | ConvertFrom-Json
     $available = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($section in @("user","system","privacy","rhythm")) { foreach ($property in $example.$section.PSObject.Properties) { [void]$available.Add($property.Name) } }
-    @("system_name","system_short_name","system_description") | ForEach-Object { [void]$available.Add($_) }
+    @("system_name","system_short_name","system_description","starter_kit_version","community_version","kos_contract_version") | ForEach-Object { [void]$available.Add($_) }
     $tokens = [System.Collections.Generic.HashSet[string]]::new()
-    Get-ChildItem -LiteralPath (Join-Path $root "templates") -Recurse -File | ForEach-Object {
-        [regex]::Matches((Get-Content -LiteralPath $_.FullName -Raw), '\{\{([a-z0-9_]+)\}\}') | ForEach-Object { [void]$tokens.Add($_.Groups[1].Value) }
+    (Get-Content -LiteralPath (Join-Path $root "installer/assets.json") -Raw | ConvertFrom-Json).assets | ForEach-Object {
+        $sourcePath = Join-Path $root $_.source
+        [regex]::Matches(([string](Get-Content -LiteralPath $sourcePath -Raw)), '\{\{([a-z0-9_]+)\}\}') | ForEach-Object { [void]$tokens.Add($_.Groups[1].Value) }
     }
     foreach ($token in $tokens) { if (-not $available.Contains($token)) { $findings += "ERROR template token has no answer mapping: ``{{$token}}``" } }
     foreach ($script in @("install.ps1","initialize.ps1")) {

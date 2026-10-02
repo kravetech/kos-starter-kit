@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kos-starter-kit/power-up-manifest.schema.json",
+  "title": "KOS Power-Up Manifest",
+  "description": "Validation contract for a Power-Up's manifest.yaml, expressed as JSON Schema. Power-Up authors write manifest.yaml using the constrained YAML-lite subset documented in installer/powerups.py (block mappings/sequences, flow lists, quoted or bare scalars); this schema describes the structure once parsed.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "id", "name", "version", "kos_compatibility", "installation", "agents", "permissions", "lifecycle"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique, lowercase, hyphenated identifier. Must match the registry entry id and the Power-Up's package directory name convention kos-<name>."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "default": ""
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version of the Power-Up itself."
+    },
+    "publisher": {
+      "type": "string",
+      "default": ""
+    },
+    "license": {
+      "type": "string",
+      "default": ""
+    },
+    "kos_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_version"],
+      "properties": {
+        "minimum_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+          "description": "Lowest KOS Core contract version this Power-Up supports, compared with kosContractVersion in the target's 00 - System/Installation/kos-installation.json (installations without state fall back to the ARCHITECTURE.md version)."
+        },
+        "maximum_version": {
+          "type": ["string", "null"],
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+          "default": null
+        }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported_modes", "default_mode"],
+      "properties": {
+        "supported_modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["external", "embedded"]}
+        },
+        "default_mode": {
+          "enum": ["external", "embedded"]
+        },
+        "requires_shared_runtime": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supported_modes": {
+          "type": "array",
+          "items": {"enum": ["embedded-target", "centralized"]},
+          "default": ["embedded-target"]
+        },
+        "default_mode": {
+          "enum": ["embedded-target", "centralized"],
+          "default": "embedded-target"
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_skill"],
+      "properties": {
+        "canonical_skill": {
+          "type": "string",
+          "pattern": "^\\.agents/skills/[a-z0-9-]+/SKILL\\.md$",
+          "description": "Relative path to the canonical, provider-neutral skill definition."
+        },
+        "supported": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["codex", "claude-code", "gemini-cli", "generic-filesystem-agent"]},
+          "default": ["codex", "claude-code", "gemini-cli", "generic-filesystem-agent"]
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "write", "canonical_kos_writes"],
+      "properties": {
+        "read": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "description": "Locations this Power-Up may read: explicit KOS folders it was initialized for, its own workspace, or well-known scopes such as selected-kos-folders."
+        },
+        "write": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "description": "Locations this Power-Up may write: its own workspace, the shared registry (to update its own entry), or explicit KOS folders."
+        },
+        "canonical_kos_writes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allowed"],
+          "properties": {
+            "allowed": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether this Power-Up may ever propose direct edits to canonical KOS files (memory.md, handoff.md, requirements, policies)."
+            },
+            "requires_explicit_approval": {
+              "type": "boolean",
+              "default": true,
+              "description": "Must be true whenever allowed is true; canonical writes are never automatic."
+            }
+          },
+          "if": {"properties": {"allowed": {"const": true}}},
+          "then": {"properties": {"requires_explicit_approval": {"const": true}}}
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {"type": "array", "items": {"type": "string"}, "default": []},
+        "optional": {"type": "array", "items": {"type": "string"}, "default": []}
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["install_command", "initialize_command", "upgrade_command", "uninstall_command"],
+      "properties": {
+        "install_command": {"type": "string"},
+        "initialize_command": {"type": "string"},
+        "upgrade_command": {"type": "string"},
+        "uninstall_command": {"type": "string"},
+        "repair_command": {"type": "string"}
+      },
+      "description": "Each value is a path, relative to the Power-Up's own root, to the platform-appropriate lifecycle script. Not every command needs a working implementation at v1.0.0, but the key must be present so tooling can detect the intended contract."
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "checksum_file": {"type": ["string", "null"], "default": null},
+        "signature_file": {"type": ["string", "null"], "default": null}
+      }
+    }
+  }
+}

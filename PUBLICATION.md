@@ -1,69 +1,49 @@
-# Public Release Procedure
+# Release process
 
-## Release Gate
+The public repository is promoted from a reviewed, allowlisted staging snapshot.
+A version is published only after the public PR, required CI, release review, tag,
+and GitHub Release are complete.
 
-Do not push until every required item passes.
+1. Finish and review all source changes, including pre-existing uncommitted work.
+   Run `python scripts/release.py` for allowlist, privacy, asset and version checks.
+2. Run `python scripts/release.py --freeze`. This creates a source candidate under
+   `build/candidates/` containing the full source/test allowlist and a SHA-256
+   manifest. Review that folder. Changes to frozen source require a new candidate.
+3. Run `python scripts/release.py --stage --candidate auto`, or supply the
+   frozen source folder explicitly. This reruns source tests, stages the narrower
+   client files in a fingerprinted `build/payloads/` folder, and tests new
+   installation, supported 1.1.0 upgrade, and additive Obsidian enhancement
+   directly from that folder. It validates each result and checks preservation
+   of existing content and settings. Review this exact payload folder and the
+   disposable test results under `test-output/pv-*/`.
+4. After owner authorization for the reviewed Git integration, require Windows,
+   Ubuntu and macOS CI for the same source and staged client folder; review
+   skips, especially links and long paths. Test disposable copies of
+   representative real vaults from the staged payload. Only after those gates
+   pass, run the manual `workflow_dispatch` archive check and then run
+   `python scripts/release.py --build --payload auto` or pass the
+   staged folder explicitly. The command rechecks its source, payload hashes,
+   and test proof immediately before ZIP creation. It creates the ZIP from only
+   the tested payload bytes and verifies every archive entry against SHA-256.
+   Existing archives are never overwritten. Test installation from the staged
+   folder during development; smoke test one extraction of the final archive.
+   Push and pull request CI do not create a ZIP. The manual CI archive is a
+   disposable verification artifact, not the production ZIP.
+5. Obtain owner review of the exact artifact. Annotate the matching `vX.Y.Z`
+   tag, publish and promote to production only under their respective
+   authorizations.
 
-### 1. Owner and License
+`installer/release-files.json` is the frozen source/test allowlist.
+`installer/archive-files.json` is the narrower client ZIP allowlist. A file must
+be in both lists to ship; new source files are not implicitly published. Tests,
+CI, release tooling, maintainer documentation, reports, local answers/permissions,
+logs, build/test output, PDFs, HTML and private configuration are excluded from
+the ZIP. Historical reports remain in source history.
+`installer/release.json` is authoritative: Starter Kit 1.2.0,
+Community 1.0.0, contract 1.0.0, schema/adapter 1.0.0 and independently
+versioned extensions. `python scripts/release.py` rejects any version drift.
 
-- [ ] Confirm `Kraven` is the intended public author and copyright-holder name.
-- [ ] Confirm Apache-2.0 is the intended license for code, templates, and documentation.
-- [ ] Confirm the Knowledge OS and KOS names are approved for public use.
-
-### 2. Privacy Review
-
-- [ ] Copy `installer/private-terms.example.txt` to ignored `installer/private-terms.txt`.
-- [ ] Replace the examples with private people, organizations, usernames, hostnames, projects, and machine identifiers.
-- [ ] Run `.\scripts\privacy-scan.ps1`.
-- [ ] Review `ARCHITECTURE.md`, `reports/`, examples, and templates for private provenance or unwanted public identity.
-- [ ] Never publish a manually created archive of the working folder; publish only Git-tracked content.
-
-### 3. Validation
-
-- [ ] Run `.\scripts\validate-starter-kit.ps1`.
-- [ ] Run a clean PowerShell installation into a temporary directory.
-- [ ] Run the Bash/Python installation on Linux or in CI.
-- [ ] Confirm CI passes on Windows and Ubuntu.
-
-### 4. Git Staging
-
-```powershell
-git init -b main
-git add --all
-git update-index --chmod=+x install.sh initialize.sh scripts/generate-manifest.sh scripts/privacy-scan.sh scripts/validate-installation.sh scripts/validate-starter-kit.sh
-git status --short --ignored
-git diff --cached --check
-git diff --cached
-.\scripts\public-release-audit.ps1
-```
-
-The release audit must report `PASS`. Its local denylist warning is acceptable only after the owner confirms that no project-specific private terms are needed.
-
-If Gitleaks is installed, also run:
-
-```powershell
-gitleaks dir .
-git commit -m "Initial public release"
-gitleaks git .
-```
-
-### 5. GitHub Configuration
-
-- [ ] Enable secret scanning and push protection.
-- [ ] Enable Dependabot alerts and code scanning.
-- [ ] Protect `main` against force pushes and deletion.
-- [ ] Require CI status checks and conversation resolution.
-- [ ] Set GitHub Actions workflow permissions to read-only unless a workflow explicitly needs more.
-- [ ] Enable private vulnerability reporting.
-
-### 6. Publication
-
-- [ ] Create a fresh empty public repository from the audited local history.
-- [ ] Push `main`.
-- [ ] Confirm ignored runtime files are absent on GitHub.
-- [ ] Confirm the detected license is Apache-2.0.
-- [ ] Create an annotated `v1.1.0` tag only after the public tree and CI are verified.
-
-## Incident Response
-
-If sensitive data is pushed, revoke or rotate credentials first. Removing a file in a later commit does not remove it from Git history, forks, caches, or existing clones. Stop publication work, rewrite affected history, re-scan it, and coordinate GitHub cleanup before resuming.
+NOTICE carries existing attribution; LICENSE retains Apache terms. Commercial
+packages and KOS editions do not relicense the Starter Kit or user knowledge. A
+passing local gate does not replace cross-platform CI or certify unavailable KOS
+Pro activation.

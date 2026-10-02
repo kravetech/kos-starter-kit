@@ -1,0 +1,600 @@
+{
+  "schemaVersion": "1.0.0",
+  "assets": [
+    {
+      "source": "templates/platform/.agents__README.md",
+      "path": ".agents/README.md",
+      "componentId": "platform",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/platform/skill-registry.json",
+      "path": ".agents/registry/skills.json",
+      "componentId": "registry.skill",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "merge": "existing-priority",
+      "schema": "registry",
+      "registry": "skill",
+      "capability": "kos.skills.runtime",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/.gitignore",
+      "path": ".gitignore",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/system/Archive-Policy.md",
+      "path": "00 - System/Archive-Policy.md",
+      "componentId": "starter.system",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/automations/AUTOMATION-REGISTRY.md",
+      "path": "00 - System/Automations/AUTOMATION-REGISTRY.md",
+      "componentId": "starter.automations",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/automations/README.md",
+      "path": "00 - System/Automations/README.md",
+      "componentId": "starter.automations",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/system/ai-context-manifest.yaml",
+      "path": "00 - System/Config/ai-context-manifest.yaml",
+      "componentId": "starter.system",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/platform/generic-registry.json",
+      "path": "00 - System/Config/packages.json",
+      "componentId": "registry.generic",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "merge": "existing-priority",
+      "schema": "registry",
+      "registry": "generic",
+      "module": "core"
+    },
+    {
+      "source": "templates/platform/00 - System__Core__README.md",
+      "path": "00 - System/Core/README.md",
+      "componentId": "platform",
+      "ownership": "managed",
+      "minimal": true,
+      "capability": "kos.core.compatibility",
+      "module": "core"
+    },
+    {
+      "source": "templates/system/Home.md",
+      "path": "00 - System/Home.md",
+      "componentId": "starter.system",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/system/Metadata-Standards.md",
+      "path": "00 - System/Metadata-Standards.md",
+      "componentId": "starter.system",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/system/Naming-Conventions.md",
+      "path": "00 - System/Naming-Conventions.md",
+      "componentId": "starter.system",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/platform/00 - System__Power-Ups__README.md",
+      "path": "00 - System/Power-Ups/README.md",
+      "componentId": "platform",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/platform/powerup-registry.json",
+      "path": "00 - System/Power-Ups/Registry/power-ups.json",
+      "componentId": "registry.powerup",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "merge": "existing-priority",
+      "schema": "registry",
+      "registry": "powerup",
+      "capability": "kos.powerups.runtime",
+      "module": "core"
+    },
+    {
+      "source": "installer/schemas/compatibility.schema.json",
+      "path": "00 - System/Power-Ups/Schemas/compatibility.schema.json",
+      "componentId": "schemas",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "installer/schemas/pro-package.schema.json",
+      "path": "00 - System/Power-Ups/Schemas/pro-package.schema.json",
+      "componentId": "schemas",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "installer/schemas/entitlement.schema.json",
+      "path": "00 - System/Power-Ups/Schemas/entitlement.schema.json",
+      "componentId": "schemas",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "installer/schemas/package.schema.json",
+      "path": "00 - System/Power-Ups/Schemas/package.schema.json",
+      "componentId": "schemas",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "installer/schemas/registry.schema.json",
+      "path": "00 - System/Power-Ups/Schemas/registry.schema.json",
+      "componentId": "schemas",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/business/Business-MOC.md",
+      "path": "01 - Business/Business-MOC.md",
+      "componentId": "starter.business",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "business"
+    },
+    {
+      "source": "examples/sample-company/README.md",
+      "path": "01 - Business/Companies/Example Company/README.md",
+      "module": "business",
+      "componentId": "synthetic-examples",
+      "ownership": "user-owned",
+      "sample": true,
+      "minimal": false
+    },
+    {
+      "source": "templates/projects/Architecture-Decision-Record.md",
+      "path": "02 - Projects/Architecture-Decision-Record.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/DECISIONS.md",
+      "path": "02 - Projects/DECISIONS.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "examples/sample-project/PROJECT-CONTEXT.md",
+      "path": "02 - Projects/Incubating/Sample Project/PROJECT-CONTEXT.md",
+      "module": "core",
+      "componentId": "synthetic-examples",
+      "ownership": "user-owned",
+      "sample": true,
+      "minimal": false
+    },
+    {
+      "source": "examples/sample-project/README.md",
+      "path": "02 - Projects/Incubating/Sample Project/README.md",
+      "module": "core",
+      "componentId": "synthetic-examples",
+      "ownership": "user-owned",
+      "sample": true,
+      "minimal": false
+    },
+    {
+      "source": "templates/projects/PROJECT-CONTEXT.md",
+      "path": "02 - Projects/PROJECT-CONTEXT.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/Projects-MOC.md",
+      "path": "02 - Projects/Projects-MOC.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/handoff.md",
+      "path": "02 - Projects/handoff.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/memory.md",
+      "path": "02 - Projects/memory.md",
+      "componentId": "starter.projects",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/personal/Personal-MOC.md",
+      "path": "03 - Personal/Personal-MOC.md",
+      "componentId": "starter.personal",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "personal"
+    },
+    {
+      "source": "templates/hobbies/Hobbies-MOC.md",
+      "path": "04 - Hobbies/Hobbies-MOC.md",
+      "componentId": "starter.hobbies",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "hobbies"
+    },
+    {
+      "source": "templates/knowledge/Knowledge-MOC.md",
+      "path": "05 - Knowledge/Knowledge-MOC.md",
+      "componentId": "starter.knowledge",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "knowledge"
+    },
+    {
+      "source": "templates/inbox/Inbox.md",
+      "path": "06 - Inbox/Inbox.md",
+      "componentId": "starter.inbox",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Daily-Note.md",
+      "path": "07 - Daily/Daily-Note.md",
+      "componentId": "starter.daily",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Monthly-Review.md",
+      "path": "07 - Daily/Monthly-Review.md",
+      "componentId": "starter.daily",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Weekly-Review.md",
+      "path": "07 - Daily/Weekly-Review.md",
+      "componentId": "starter.daily",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "examples/sample-daily-workflow.md",
+      "path": "07 - Daily/sample-daily-workflow.md",
+      "module": "core",
+      "componentId": "synthetic-examples",
+      "ownership": "user-owned",
+      "sample": true,
+      "minimal": false
+    },
+    {
+      "source": "templates/projects/Architecture-Decision-Record.md",
+      "path": "08 - Templates/Project/Project-Folder-Template/Architecture-Decision-Record.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/DECISIONS.md",
+      "path": "08 - Templates/Project/Project-Folder-Template/DECISIONS.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/PROJECT-CONTEXT.md",
+      "path": "08 - Templates/Project/Project-Folder-Template/PROJECT-CONTEXT.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/handoff.md",
+      "path": "08 - Templates/Project/Project-Folder-Template/handoff.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/projects/memory.md",
+      "path": "08 - Templates/Project/Project-Folder-Template/memory.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Daily-Note.md",
+      "path": "08 - Templates/Reviews/Daily-Note.md",
+      "componentId": "starter.daily",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Monthly-Review.md",
+      "path": "08 - Templates/Reviews/Monthly-Review.md",
+      "componentId": "starter.daily",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/daily/Weekly-Review.md",
+      "path": "08 - Templates/Reviews/Weekly-Review.md",
+      "componentId": "starter.daily",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/attachments/README.md",
+      "path": "09 - Attachments/README.md",
+      "componentId": "starter.attachments",
+      "ownership": "user-owned",
+      "minimal": false,
+      "module": "core"
+    },
+    {
+      "source": "templates/archive/README.md",
+      "path": "99 - Archive/README.md",
+      "componentId": "starter.archive",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/AGENTS.md",
+      "path": "AGENTS.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "capability": "kos.context.memory-handoff",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/ARCHITECTURE.md",
+      "path": "ARCHITECTURE.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/CHANGELOG.md",
+      "path": "CHANGELOG.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/CLAUDE.md",
+      "path": "CLAUDE.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "provider": "claude",
+      "capability": "kos.provider.claude",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/CODEX.md",
+      "path": "CODEX.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "provider": "codex",
+      "capability": "kos.provider.codex",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/CONTEXT-POLICY.md",
+      "path": "CONTEXT-POLICY.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/DESIGN.md",
+      "path": "DESIGN.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/GEMINI.md",
+      "path": "GEMINI.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "provider": "gemini",
+      "capability": "kos.provider.gemini",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/PRODUCT.md",
+      "path": "PRODUCT.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/README.md",
+      "path": "README.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/Schedule.md",
+      "path": "Schedule.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/TOKEN-OPTIMIZATION.md",
+      "path": "TOKEN-OPTIMIZATION.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/handoff.md",
+      "path": "handoff.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/me.md",
+      "path": "me.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "templates/root/memory.md",
+      "path": "memory.md",
+      "componentId": "starter.root",
+      "ownership": "user-owned",
+      "minimal": true,
+      "module": "core"
+    }
+  ],
+  "directories": [
+    ".agents/registry",
+    ".agents/skills",
+    "00 - System/AI",
+    "00 - System/Automations",
+    "00 - System/Config",
+    "00 - System/Config/Core",
+    "00 - System/Config/Power-Ups",
+    "00 - System/Config/Skills",
+    "00 - System/Core/Installed",
+    "00 - System/Core/Manifests",
+    "00 - System/Installation",
+    "00 - System/Licenses",
+    "00 - System/Linked Sources",
+    "00 - System/Power-Ups/Installed",
+    "00 - System/Power-Ups/Registry",
+    "00 - System/Power-Ups/Schemas",
+    "00 - System/Power-Ups/Trust",
+    "00 - System/Reports",
+    "00 - System/Reports/Core",
+    "00 - System/Reports/Power-Ups",
+    "00 - System/Reports/Skills",
+    "00 - System/State",
+    "00 - System/State/Core",
+    "00 - System/State/Power-Ups",
+    "00 - System/State/Skills",
+    "01 - Business/Clients",
+    "01 - Business/Companies",
+    "01 - Business/Meetings",
+    "01 - Business/Operations",
+    "01 - Business/People",
+    "01 - Business/Products",
+    "01 - Business/Strategy",
+    "02 - Projects/Active",
+    "02 - Projects/Archive",
+    "02 - Projects/Completed",
+    "02 - Projects/Incubating",
+    "02 - Projects/On-Hold",
+    "03 - Personal/Finance",
+    "03 - Personal/Goals",
+    "03 - Personal/Health",
+    "03 - Personal/Learning",
+    "03 - Personal/Life-Admin",
+    "04 - Hobbies/Content-Creation",
+    "04 - Hobbies/Interests",
+    "05 - Knowledge/AI",
+    "05 - Knowledge/Architecture",
+    "05 - Knowledge/Business",
+    "05 - Knowledge/DevOps",
+    "05 - Knowledge/Product-Design",
+    "05 - Knowledge/References",
+    "05 - Knowledge/Research",
+    "05 - Knowledge/Software-Development",
+    "06 - Inbox/Imports",
+    "06 - Inbox/Quick-Notes",
+    "06 - Inbox/Unprocessed",
+    "07 - Daily/Annual-Reviews",
+    "07 - Daily/Daily-Notes",
+    "07 - Daily/Monthly-Reviews",
+    "07 - Daily/Weekly-Reviews",
+    "08 - Templates/Business",
+    "08 - Templates/Decisions",
+    "08 - Templates/General",
+    "08 - Templates/Knowledge",
+    "08 - Templates/Meetings",
+    "08 - Templates/Project",
+    "08 - Templates/Reviews",
+    "09 - Attachments/Documents",
+    "09 - Attachments/Exports",
+    "09 - Attachments/Images",
+    "09 - Attachments/Temporary",
+    "99 - Archive/Knowledge",
+    "99 - Archive/Meetings",
+    "99 - Archive/Projects",
+    "99 - Archive/System"
+  ]
+}

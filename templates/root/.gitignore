@@ -20,3 +20,10 @@ node_modules/
 .DS_Store
 Thumbs.db
 .obsidian/workspace*
+
+# v1.2 transactional and private runtime state
+00 - System/Installation/Runs/
+00 - System/Installation/operation.lock
+00 - System/State/
+00 - System/Reports/
+00 - System/Licenses/

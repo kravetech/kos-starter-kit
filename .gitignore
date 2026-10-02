@@ -30,3 +30,9 @@ __pycache__/
 Thumbs.db
 .obsidian/workspace*
 .claude/settings.local.json
+
+# Staging-only evidence and generated artifacts
+output/
+tmp/
+*.local.json
+reports/STAGING-*
