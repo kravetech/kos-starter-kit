@@ -115,7 +115,7 @@ def validate_starter(root: Path, report: Path) -> int:
     for heading in INSTALL_HEADINGS:
         if f"## {heading}" not in installer:
             findings.append(f"ERROR installer heading missing: `{heading}`")
-    for adapter in ("templates/root/CLAUDE.md", "templates/root/CODEX.md"):
+    for adapter in ("templates/root/CLAUDE.md", "templates/root/CODEX.md", "templates/root/GEMINI.md", "templates/root/HERMES.md", "templates/root/OMP.md"):
         if (root / adapter).exists() and len((root / adapter).read_text(encoding="utf-8").splitlines()) > 40:
             findings.append(f"ERROR adapter is not thin: `{adapter}`")
     template_tokens: set[str] = set()

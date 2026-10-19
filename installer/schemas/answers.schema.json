@@ -134,7 +134,9 @@
           "google-calendar",
           "telegram",
           "n8n",
-          "gemini"
+          "gemini",
+          "hermes-agent",
+          "omp"
         ]
       },
       "default": [
@@ -327,7 +329,9 @@
             "enum": [
               "codex",
               "claude",
-              "gemini"
+              "gemini",
+              "hermes",
+              "omp"
             ]
           }
         },

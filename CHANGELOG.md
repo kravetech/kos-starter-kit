@@ -2,6 +2,7 @@
 
 ## [1.2.0] - Unreleased
 
+- Added Hermes Agent and oh-my-pi (omp) as supported providers. Both route through the canonical `AGENTS.md` via new thin `HERMES.md` and `OMP.md` adapters, selectable through `installation.providers` (`hermes`, `omp`), `initialize.sh`/`initialize.ps1` (`--agent hermes|omp`), and the Power-Up template's `adapters/` layout and manifest enum.
 - Added a frozen, fingerprinted source-candidate gate and a separate positive client ZIP payload list. The exact client files are staged in a reviewable folder and tested for new installation, legacy upgrade and Obsidian enhancement before any archive is created.
 - Added bounded migration link auditing for existing Obsidian wikilinks, embeds and Markdown links. Dry-runs report baseline unresolved links and new basename collisions; newly ambiguous or redirected previously resolved links block apply.
 - Aligned legacy Power-Up discovery across Bash/Python and PowerShell as read-only. Removed the unused migration backup flag and require a verified external full-vault snapshot while retaining transaction backups for changed files.

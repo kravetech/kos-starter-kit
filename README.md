@@ -19,7 +19,7 @@ KOS Community remains independently useful and does not require a KOS Pro entitl
 ## What It Generates
 
 - Numbered Obsidian-compatible domain structure.
-- Canonical `AGENTS.md` router with thin Claude and Codex adapters.
+- Canonical `AGENTS.md` router with thin Claude, Codex, Gemini, Hermes, and OMP adapters.
 - Durable `memory.md` and current-state `handoff.md`.
 - Context, metadata, privacy, token, archive, and automation policies.
 - Optional examples, Git initialization, and migration-safe conflict files.
@@ -29,6 +29,8 @@ KOS Community remains independently useful and does not require a KOS Pro entitl
 
 - Codex CLI
 - Claude Code
+- Hermes Agent
+- oh-my-pi (omp)
 - PowerShell 7+
 - Bash 4+ with Python 3
 - Obsidian and VS Code

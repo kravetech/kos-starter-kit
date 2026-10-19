@@ -29,7 +29,7 @@ try {
     foreach ($heading in @("Role","Objective","Inputs","Constraints","Privacy Rules","Questionnaire","Installation Modes","Dry Run","File Generation","Template Processing","Context Bootstrap","Automation Setup","Git Initialization","Validation","Conflict Handling","Resume Behavior","Rollback","Installation Report")) {
         if ($installer -notmatch "(?m)^## $([regex]::Escape($heading))\s*$") { $findings += "ERROR installer heading missing: ``$heading``" }
     }
-    foreach ($adapter in @("templates\root\CLAUDE.md","templates\root\CODEX.md")) {
+    foreach ($adapter in @("templates\root\CLAUDE.md","templates\root\CODEX.md","templates\root\GEMINI.md","templates\root\HERMES.md","templates\root\OMP.md")) {
         if ((Get-Content -LiteralPath (Join-Path $root $adapter)).Count -gt 40) { $findings += "ERROR adapter is not thin: ``$adapter``" }
     }
     $example = Get-Content -LiteralPath (Join-Path $root "installer\answers.example.json") -Raw | ConvertFrom-Json

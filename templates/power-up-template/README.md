@@ -40,7 +40,7 @@ directory (for example `<workspace-root>/KOS Power-Ups/kos-example/`). See
 
 ## Compatible Agents
 
-Codex, Claude Code, Gemini CLI, and other filesystem-capable agents, via the
+Codex, Claude Code, Gemini CLI, Hermes Agent, oh-my-pi (omp), and other filesystem-capable agents, via the
 canonical skill at `.agents/skills/kos-example/SKILL.md`. Provider adapters
 under `adapters/` stay thin; they point at the canonical skill rather than
 duplicating its logic.

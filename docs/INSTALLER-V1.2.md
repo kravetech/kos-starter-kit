@@ -144,11 +144,11 @@ Close editors/sync clients during an approved operation. Hash guards detect
 ordinary concurrent changes, but this is not a filesystem sandbox against a
 hostile local process replacing directories between a check and an OS call.
 
-## Gemini and shared routing
+## Optional providers and shared routing
 
-Set `installation.providers` to any subset of `codex`, `claude`, `gemini` in the
-answer file. Gemini is optional and requires no executable for file installation.
-All three thin adapters route through `AGENTS.md`, `CONTEXT-POLICY.md`, the same
+Set `installation.providers` to any subset of `codex`, `claude`, `gemini`, `hermes`, `omp` in the
+answer file. Gemini, Hermes, and OMP are optional and require no executable for file installation.
+All thin adapters route through `AGENTS.md`, `CONTEXT-POLICY.md`, the same
 capability registry, Skills registry, Power-Up registry, `me.md`, and project
 context rules. Provider CLIs are only needed when launching an interactive agent.
 

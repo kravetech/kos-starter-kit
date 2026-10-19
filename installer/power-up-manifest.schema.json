@@ -101,8 +101,8 @@
         "supported": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"enum": ["codex", "claude-code", "gemini-cli", "generic-filesystem-agent"]},
-          "default": ["codex", "claude-code", "gemini-cli", "generic-filesystem-agent"]
+          "items": {"enum": ["codex", "claude-code", "gemini-cli", "hermes-agent", "omp", "generic-filesystem-agent"]},
+          "default": ["codex", "claude-code", "gemini-cli", "hermes-agent", "omp", "generic-filesystem-agent"]
         }
       }
     },

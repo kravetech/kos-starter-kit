@@ -31,7 +31,7 @@ The old `backup_before_migration` answer is rejected because it never made a
 complete vault backup. Remove it from older answer files after taking a
 separate, verified snapshot.
 
-Select adapters with `installation.providers`: codex, claude, gemini. Provider
+Select adapters with `installation.providers`: codex, claude, gemini, hermes, omp. Provider
 executables are not needed to create files. See [packages](docs/PACKAGES-V1.md).
 For interrupted operations review the run journal and rollback by run ID;
 automatic resume is blocked.

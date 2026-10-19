@@ -24,7 +24,7 @@ Ask for system name, short name, root folder name, description, motto, and insta
 
 Select any of: business, projects, software development, personal management, content creation, research, learning, finance, hobbies, client management, product development.
 
-Select installed or intended tools: Obsidian, VS Code, Codex, Claude Code, Git, GitHub, OneDrive, Google Drive, Gmail, Google Calendar, Telegram, n8n.
+Select installed or intended tools: Obsidian, VS Code, Codex, Claude Code, Gemini CLI, Hermes Agent, oh-my-pi (omp), Git, GitHub, OneDrive, Google Drive, Gmail, Google Calendar, Telegram, n8n.
 
 ## Privacy
 

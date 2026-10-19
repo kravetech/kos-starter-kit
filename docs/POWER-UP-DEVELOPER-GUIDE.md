@@ -8,7 +8,7 @@ and rename `kos-example` throughout).
 ```text
 kos-<name>/
 ├── .agents/skills/kos-<name>/SKILL.md   # canonical, provider-neutral skill
-├── adapters/{claude,codex,gemini}/      # thin per-agent entry points only
+├── adapters/{claude,codex,gemini,hermes,omp}/   # thin per-agent entry points only
 ├── config/{defaults.yaml,schemas/}      # provider-neutral defaults + schemas
 ├── docs/{architecture,installation,usage,upgrade,uninstall}.md
 ├── installer/{install,initialize,upgrade,uninstall}.{ps1,sh}
@@ -46,7 +46,7 @@ decisions to make explicitly:
 
 ## Keep Adapters Thin
 
-`adapters/claude/`, `adapters/codex/`, `adapters/gemini/` exist only to tell
+`adapters/claude/`, `adapters/codex/`, `adapters/gemini/`, `adapters/hermes/`, `adapters/omp/` exist only to tell
 each agent where the canonical skill is. Business logic, validation,
 schemas, and runtime behavior belong in `runtime/` and are referenced from
 `.agents/skills/kos-<name>/SKILL.md`, never duplicated per adapter. This

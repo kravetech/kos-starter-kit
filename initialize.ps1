@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("auto","codex","claude","gemini")]
+    [ValidateSet("auto","codex","claude","gemini","hermes","omp")]
     [string]$Agent = "auto",
     [string]$Answers,
     [switch]$DryRun,
@@ -22,15 +22,21 @@ try {
     $codex = Get-Command codex -ErrorAction SilentlyContinue
     $claude = Get-Command claude -ErrorAction SilentlyContinue
     $gemini = Get-Command gemini -ErrorAction SilentlyContinue
+    $hermes = Get-Command hermes -ErrorAction SilentlyContinue
+    $omp = Get-Command omp -ErrorAction SilentlyContinue
     if ($Agent -eq "auto") {
         if ($codex) { $Agent = "codex" }
         elseif ($claude) { $Agent = "claude" }
         elseif ($gemini) { $Agent = "gemini" }
+        elseif ($hermes) { $Agent = "hermes" }
+        elseif ($omp) { $Agent = "omp" }
         else { throw "No supported agent was found on PATH." }
     }
     if ($Agent -eq "codex" -and -not $codex) { throw "codex was not found on PATH." }
     if ($Agent -eq "claude" -and -not $claude) { throw "claude was not found on PATH." }
     if ($Agent -eq "gemini" -and -not $gemini) { throw "gemini was not found on PATH." }
+    if ($Agent -eq "hermes" -and -not $hermes) { throw "hermes was not found on PATH." }
+    if ($Agent -eq "omp" -and -not $omp) { throw "omp was not found on PATH." }
     $answerPath = ""
     if ($Answers) {
         $candidate = if ([System.IO.Path]::IsPathRooted($Answers)) { $Answers } else { Join-Path $starterRoot $Answers }
@@ -59,6 +65,12 @@ try {
         }
         elseif ($Agent -eq "gemini") {
             & $gemini.Source $prompt
+        }
+        elseif ($Agent -eq "hermes") {
+            & $hermes.Source $prompt
+        }
+        elseif ($Agent -eq "omp") {
+            & $omp.Source $prompt
         }
         else {
             & $claude.Source --add-dir $starterRoot $prompt

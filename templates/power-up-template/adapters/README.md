@@ -9,6 +9,8 @@ the canonical skill and shrink the adapter back down.
 - `claude/` — Claude Code integration point.
 - `codex/` — Codex CLI integration point.
 - `gemini/` — Gemini CLI integration point.
+- `hermes/` — Hermes Agent integration point.
+- `omp/` — oh-my-pi (omp) integration point.
 
 Not every Power-Up needs every adapter at first release. Add one when that
 agent needs to invoke this Power-Up.

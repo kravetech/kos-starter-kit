@@ -4,6 +4,9 @@
     "AGENTS.md",
     "CLAUDE.md",
     "CODEX.md",
+    "GEMINI.md",
+    "HERMES.md",
+    "OMP.md",
     "ARCHITECTURE.md",
     "DESIGN.md",
     "PRODUCT.md",
@@ -14,8 +17,7 @@
     "memory.md",
     "handoff.md",
     "CHANGELOG.md",
-    ".gitignore",
-    "GEMINI.md"
+    ".gitignore"
   ],
   "standard_directories": [
     "00 - System/AI",

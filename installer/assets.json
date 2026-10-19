@@ -455,6 +455,26 @@
       "module": "core"
     },
     {
+      "source": "templates/root/HERMES.md",
+      "path": "HERMES.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "provider": "hermes",
+      "capability": "kos.provider.hermes",
+      "module": "core"
+    },
+    {
+      "source": "templates/root/OMP.md",
+      "path": "OMP.md",
+      "componentId": "starter.root",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "provider": "omp",
+      "capability": "kos.provider.omp",
+      "module": "core"
+    },
+    {
       "source": "templates/root/GEMINI.md",
       "path": "GEMINI.md",
       "componentId": "starter.root",

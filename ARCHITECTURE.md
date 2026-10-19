@@ -159,14 +159,14 @@ The starter kit may reproduce the architecture, policies, workflows, and neutral
 
 ## Installer Execution Model
 
-`KOS-INSTALLER.md` is the canonical, tool-neutral installation specification. It must be executable by either Codex CLI or Claude Code.
+`KOS-INSTALLER.md` is the canonical, tool-neutral installation specification. It must be executable by Codex CLI, Claude Code, Gemini CLI, Hermes Agent, or oh-my-pi (omp).
 
 The initialization flow is:
 
 ```text
 initialize.ps1 or initialize.sh
         ↓
-Detect Codex or Claude
+Detect Codex, Claude, Gemini, Hermes, or OMP
         ↓
 Read KOS-INSTALLER.md
         ↓

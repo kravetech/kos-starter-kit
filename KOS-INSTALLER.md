@@ -49,7 +49,7 @@ Render UTF-8 templates, reject unresolved tokens and hash resulting bytes. Relea
 
 ## Context Bootstrap
 
-AGENTS is canonical. Claude, Codex and Gemini share policy, capabilities, Skills, Power-Ups, user context and project routing.
+AGENTS is canonical. Claude, Codex, Gemini, Hermes, and OMP share policy, capabilities, Skills, Power-Ups, user context and project routing.
 
 ## Automation Setup
 

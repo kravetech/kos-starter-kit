@@ -6,7 +6,7 @@ For current commands and safety rules, follow [docs/INSTALLER-V1.2.md](docs/INST
 
 1. Open a terminal in the starter-kit folder.
 2. Run `initialize.ps1` or `initialize.sh`.
-3. Select Codex or Claude.
+3. Select Codex, Claude, Gemini, Hermes, or OMP.
 4. Answer the questionnaire or provide JSON answers.
 5. Review the dry-run manifest.
 6. Generate the Knowledge OS.
