@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "schema": "kos-skill/v1",
+  "type": "skill",
+  "id": "project-action-list-skill",
+  "name": "Project Action List Skill",
+  "version": "1.0.0",
+  "creator": "KOS Community",
+  "license": "Apache-2.0",
+  "compatibility": {
+    "min": "1.0.0",
+    "maxExclusive": "2.0.0"
+  },
+  "supportedEditions": [
+    "community"
+  ],
+  "scope": "project",
+  "permissions": [],
+  "dependencies": {},
+  "entrypoints": [
+    "SKILL.md"
+  ],
+  "enabledByDefault": false,
+  "configurationSchema": {
+    "type": "object"
+  },
+  "defaults": {},
+  "integrity": {
+    "SKILL.md": "edd2c6fe142779115f8fd42e23b1194fbba1b82b974cfa8c554a3534ae004780"
+  },
+  "entrypoint": "SKILL.md"
+}

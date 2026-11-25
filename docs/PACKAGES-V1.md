@@ -23,8 +23,10 @@ Limits are 4,096 entries, 16 MiB per
 file, 64 MiB total uncompressed content. Every payload file must be listed under
 manifest `integrity` with its lowercase SHA-256 hash. Undeclared files fail.
 
-See `installer/schemas/package.schema.json` and the synthetic package factories
-in `tests/test_safety.py`. Required fields include schemaVersion, schema, type,
+Start with the [free Project Action List tutorial](PROJECT-ACTION-LIST.md) in the
+customer ZIP. Its two ready-to-install packages and update helper are under
+`examples/project-action-list/`. See `installer/schemas/package.schema.json`
+for the manifest fields. Required fields include schemaVersion, schema, type,
 id, name, version, creator, license, compatibility, supportedEditions, scope,
 permissions, dependencies, entrypoints, enabledByDefault, configurationSchema,
 defaults and integrity. Skills use `kos-skill/v1`, require `entrypoint: SKILL.md`,
@@ -81,11 +83,9 @@ readable for compatibility and map to `community` and `pro`. Pro-only and
 Enterprise-only packages require corresponding declared capabilities.
 There is no expiry check that disables an acquired installed version.
 
-KOS Pro conversion is an intentionally blocked boundary. The public Starter Kit
-cannot activate Pro, validate a commercial entitlement, or exercise Pro activation
-rollback without a separately supplied commercial implementation. Standalone
-packages remain untouched by Pro dry-runs. Installing a commercial edition must
-never relicense the user's vault or the open-source Starter Kit.
+Current commercial workflows use the Community host. An individual purchase covers the purchased workflow version, and the combined subscription covers eligible workflows included in the plan. A workflow offered for separate purchase only needs its own purchase. Package compatibility and local file permissions are checked separately from commercial rights. The free Project Action List uses the Community package lifecycle without a purchase.
+
+Legacy Pro 1.1.0 is a separately licensed distribution. The installer preserves its edition boundary and blocks conversion of an existing vault to that edition. Its legacy capability identifiers remain available for compatibility.
 
 The pre-existing YAML Power-Up templates and discovery modules remain source
 history for compatibility review. They are not an immutable package installer.

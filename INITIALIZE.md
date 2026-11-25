@@ -1,12 +1,10 @@
-# v1.2 operational authority
+# Initialize KOS Community
 
-For current commands and safety rules, follow [docs/INSTALLER-V1.2.md](docs/INSTALLER-V1.2.md). The older narrative below describes the initial clean-install workflow. Do not use overwrite-all, automatic resume, or direct template copying for upgrades.
-
-# Initialize
+Use the [installation guide](INSTALL.md) for a new vault or a supported update. The steps below launch an installed AI client for guided setup. The direct installer also works without an AI client.
 
 1. Open a terminal in the starter-kit folder.
 2. Run `initialize.ps1` or `initialize.sh`.
-3. Select Codex or Claude.
+3. Use the default `auto` setting or select an installed client with `-Agent` (PowerShell) or `--agent` (Bash). The choices are `gemini`, `claude` and `codex`.
 4. Answer the questionnaire or provide JSON answers.
 5. Review the dry-run manifest.
 6. Generate the Knowledge OS.

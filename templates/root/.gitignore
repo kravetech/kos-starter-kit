@@ -27,3 +27,6 @@ Thumbs.db
 00 - System/State/
 00 - System/Reports/
 00 - System/Licenses/
+
+# Local project approvals contain the owner's most recent reviewed notes.
+.kos-context-*

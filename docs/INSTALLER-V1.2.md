@@ -1,10 +1,6 @@
-# KOS Starter Kit 1.2 operation guide
+# KOS Community installation, upgrade and recovery
 
-`installer/release.json` is the authoritative version source. Starter Kit and
-installer are 1.2.0; the KOS Community edition is 1.0.0; the KOS contract is
-1.0.0; schema and adapter versions are 1.0.0. Package versions are independent. New installations use
-`edition: community`. This is a KOS Starter Kit release for KOS Community, not a
-KOS Core or KOS Pro release.
+This guide covers Community 1.1.0, distributed with Starter Kit and installer 1.3.0 on the Core 1.0.0 contract. The guide retains its historical filename for existing links. Check `installer/release.json` in your extracted kit for the exact versions. New installations use `edition: community`.
 
 ## Commands and approvals
 
@@ -41,9 +37,9 @@ rejected. Interrupted runs require journal review and rollback before replanning
 | Validate | Reads state, hashes, registries, adapter routes, structure, privacy and capability paths |
 | Repair | Reconciles missing foundations; does not reinstall optional packages |
 
-KOS Pro vaults are not Community migration sources. The Community installer
-refuses them even when the legacy migration switch is used. A supported
-Community-to-Pro transition belongs to a future Pro installer.
+Existing legacy Pro vaults use their edition-specific maintenance tools. Commercial workflow packages for the current Community host follow the [package lifecycle](PACKAGES-V1.md).
+
+A legacy installation must have a recorded, supported installer version. If upgrade or repair reports `LEGACY_VERSION_UNKNOWN`, stop and locate the original installation record or a verified backup. Leave the vault intact during manual review. Rehearse supported upgrades on a disposable copy before approving a separate plan for the original.
 
 Enhancement profiles are `minimal` and `complete` (`-Mode` / `--mode`). Minimal
 creates System, Inbox, Templates, Archive and shared routing without every domain.

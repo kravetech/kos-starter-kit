@@ -34,5 +34,5 @@ Start with `AGENTS.md`. Load the smallest task-specific bundle. Durable context 
 
 1. Review `me.md` and privacy defaults.
 2. Process one item through `06 - Inbox`.
-3. Create project context only when a project becomes active.
+3. From the vault root, run `python "00 - System/Tools/ProjectContext/project_context.py" --project "Project Name" init` when a project becomes active. The installed guide is beside the command in `PROJECT-CONTEXT.md`.
 4. Review `00 - System/Automations/AUTOMATION-REGISTRY.md`.

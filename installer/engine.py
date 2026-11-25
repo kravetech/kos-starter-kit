@@ -279,6 +279,17 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
         raise Blocked("OBSIDIAN_NOT_DETECTED")
     if operation == "enhance" and kind == "managed-kos" and state.get("origin") != "enhance":
         raise Blocked("USE_UPGRADE_FOR_MANAGED_KOS")
+    previous_version = state["starterKitVersion"] if state else None
+    if kind == "legacy-kos":
+        legacy = safe(root, "00 - System/Installation/installer-state.json")
+        record = json_read(legacy) if legacy.is_file() else {}
+        if not isinstance(record, dict):
+            raise Blocked("VERSION_RECORD_INVALID")
+        previous_version = record.get("installer_version")
+        if previous_version is None or isinstance(previous_version, str) and not previous_version.strip():
+            raise Blocked("LEGACY_VERSION_UNKNOWN")
+        if previous_version not in RELEASE["supportedUpgradeVersions"]:
+            raise Blocked("VERSION_UNSUPPORTED_OR_DOWNGRADE")
     # Existing profile/provider choices are configuration, not new defaults.
     if state:
         profile = state["profile"]
@@ -289,7 +300,7 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
     old_assets = state.get("components", {}) if state else {}
     desired = contents(answers, profile, state)
     plan_data = {"schemaVersion": "1.0.0", "operation": operation, "targetType": kind,
-                 "previousVersion": state["starterKitVersion"] if state else None,
+                 "previousVersion": previous_version,
                  "resultingVersion": RELEASE["starterKitVersion"], "edition": canonical_edition(state.get("edition", RELEASE["edition"])) if state else RELEASE["edition"],
                  "profile": profile, "items": [], "links": [f["path"] for f in files if f["kind"] == "link"],
                  "decisions": decisions, "folderMappings": []}
@@ -297,13 +308,6 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
     plan_data["postActions"] = ["INITIALIZE_GIT"] if operation == "new" and answers["installation"].get("initialize_git") else []
     if answers["installation"].get("create_initial_commit"):
         raise Blocked("INITIAL_COMMIT_REQUIRES_MANUAL_CONTENT_REVIEW")
-    if kind == "legacy-kos":
-        legacy = safe(root, "00 - System/Installation/installer-state.json")
-        if legacy.is_file():
-            old_version = json_read(legacy).get("installer_version")
-            if old_version and old_version not in RELEASE["supportedUpgradeVersions"]:
-                raise Blocked("VERSION_UNSUPPORTED_OR_DOWNGRADE")
-            plan_data["previousVersion"] = old_version
     if operation == "enhance":
         plan_data["folderMappings"] = [{"existing": f["path"], "recommendation": "retain in place; map explicitly in context policy"} for f in files if f["kind"] == "directory" and "/" not in f["path"] and not f["path"].startswith(".")]
     found = evidence(root, files)
@@ -338,6 +342,11 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
                         except (ValueError, UnicodeError):
                             classification, action = "CONFIG_CONFLICT", "BLOCK"
                     elif not old and plan_data["previousVersion"] == "1.1.0" and current in asset.get("historicalHashes", []):
+                        classification, action = "OLDER_MANAGED", "UPDATE_SAFE"
+                    elif (operation == "upgrade" and old and decisions.get(rel) != "propose"
+                          and current == old["installedHash"]
+                          and current == asset.get("releasedDefaults", {}).get(old["sourceVersion"])):
+                        # Only this exact released default may migrate under user ownership.
                         classification, action = "OLDER_MANAGED", "UPDATE_SAFE"
                     elif old and current == old["installedHash"] and owner in {"managed", "managed-customizable"}:
                         if asset.get("renderFingerprint") and old.get("renderFingerprint") != asset["renderFingerprint"]:
@@ -411,6 +420,10 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
     _metadata_item(root, plan_data, payload, CAPABILITIES, encoded(cap_data))
     next_state = copy.deepcopy(state) if state else {"schemaVersion": "1.0.0", "edition": RELEASE["edition"], "origin": operation}
     next_state["edition"] = canonical_edition(next_state.get("edition", RELEASE["edition"]))
+    privacy = next_state.setdefault("privacy", {})
+    prior_folders = privacy.get("restricted_folders", [])
+    chosen_folders = answers["privacy"].get("restricted_folders", [])
+    privacy["restricted_folders"] = list(dict.fromkeys(prior_folders + chosen_folders))
     next_state.update({k: RELEASE[k] for k in ("starterKitVersion", "installerVersion", "communityVersion", "kosContractVersion")})
     next_state.update(profile=profile, providers=answers["installation"]["providers"], components=components,
                       capabilities=sorted(merged_caps), includeSamples=answers["installation"].get("include_samples", False), customModules=answers["installation"].get("custom_modules", []))

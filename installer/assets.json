@@ -2,6 +2,39 @@
   "schemaVersion": "1.0.0",
   "assets": [
     {
+      "source": "docs/PROJECT-CONTEXT.md",
+      "path": "00 - System/Tools/ProjectContext/PROJECT-CONTEXT.md",
+      "componentId": "community.project-context",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "scripts/project_context.py",
+      "path": "00 - System/Tools/ProjectContext/project_context.py",
+      "componentId": "community.project-context",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core",
+      "capability": "kos.project.context"
+    },
+    {
+      "source": "scripts/project_lifecycle.py",
+      "path": "00 - System/Tools/ProjectContext/project_lifecycle.py",
+      "componentId": "community.project-context",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
+      "source": "scripts/project_sources.py",
+      "path": "00 - System/Tools/ProjectContext/project_sources.py",
+      "componentId": "community.project-context",
+      "ownership": "managed",
+      "minimal": true,
+      "module": "core"
+    },
+    {
       "source": "templates/platform/.agents__README.md",
       "path": ".agents/README.md",
       "componentId": "platform",
@@ -57,6 +90,9 @@
       "source": "templates/system/ai-context-manifest.yaml",
       "path": "00 - System/Config/ai-context-manifest.yaml",
       "componentId": "starter.system",
+      "releasedDefaults": {
+        "1.2.0": "a57f760821b096dc1709db4ca36426f68e0b00cfcf78d88fbc6dd7072463755f"
+      },
       "ownership": "user-owned",
       "minimal": true,
       "module": "core"
@@ -312,6 +348,14 @@
       "ownership": "user-owned",
       "sample": true,
       "minimal": false
+    },
+    {
+      "source": "templates/meetings/Meeting-Note.md",
+      "path": "08 - Templates/Meetings/Meeting-Note.md",
+      "componentId": "starter.projects",
+      "ownership": "managed-customizable",
+      "minimal": true,
+      "module": "core"
     },
     {
       "source": "templates/projects/Architecture-Decision-Record.md",

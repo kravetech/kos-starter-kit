@@ -3,12 +3,12 @@ title: Knowledge OS Starter Kit Architecture
 type: architecture
 status: active
 area: system
-version: 1.2.0
-community_version: 1.0.0
+version: 1.3.0
+community_version: 1.1.0
 kos_contract_version: 1.0.0
 author: Kraven
 created: 2026-07-15
-updated: 2026-09-29
+updated: 2026-11-25
 tags:
   - knowledge-os
   - architecture
@@ -28,8 +28,8 @@ related:
 | Field | Value |
 | --- | --- |
 | System | KOS Starter Kit |
-| Version | `v1.2.0` |
-| Community version | `1.0.0` |
+| Version | `v1.3.0` |
+| Community version | `1.1.0` |
 | KOS Core contract | `1.0.0` |
 | Author | `Kraven` |
 | Release status | Repository tags and GitHub Releases record published state |
@@ -46,7 +46,8 @@ Kraven Knowledge OS (KOS) is an Obsidian-based operating system for durable know
 | KOS Core | Shared technical architecture and compatibility contract; not an edition |
 | KOS Community | Free and open-source edition |
 | KOS Starter Kit | Official open-source bootstrap distribution for KOS Community |
-| KOS Pro | Separately licensed commercial edition |
+| Official commercial workflows | Individually purchased Power-Ups or eligible packages under the combined subscription. Both run on the Community host. |
+| Legacy Pro 1.1.0 | Separately licensed distribution retained for compatibility with existing installations |
 | KOS Enterprise | Planned organizational and multi-user edition |
 
 The Starter Kit remains independently distributable under Apache-2.0. Commercial KOS editions do not retroactively change the license terms of released Starter Kit versions.
@@ -390,6 +391,12 @@ Every AI-ready project uses two mandatory context files:
 
 Running code remains the source of truth for implementation reality. `memory.md` represents approved intent; `handoff.md` explains the current transition between the two.
 
+## Community Power-Up invocation
+
+Project Action List uses the v1 local package engine. The Power-Up declares an exact Skill dependency. Its binding identifies the Skill entrypoint and SHA-256 digest. The kit command verifies both installed packages, project activation, context approval and selected sources before returning the shared instructions and cited input. It rechecks that state before saving a new result in the project's Results folder. Gemini, Claude and Codex use the same binding. A provider name in a local run records the selected route. Live provider qualification requires a separate observed client invocation.
+
+The Power-Up and Skill each start at 1.0.0 and carry their own version history. The example ships with the unreleased Starter Kit 1.3.0 and Community 1.1.0 development line.
+
 ## Versioning Policy
 
 KOS uses [Semantic Versioning](https://semver.org/) for public releases:
@@ -453,6 +460,8 @@ The starter kit source is prepared for public distribution under Apache-2.0. Pub
 | Absolute machine paths in any document | Replace with placeholders such as `<starter-kit-root>` |
 
 ## Community Architecture Contract
+
+Community 1.1.0 adds a local project context command. Approval binds the exact memory and handoff to the selected project. Retrieval takes an explicit list of Markdown sources, applies the installed access rules and returns bounded, line-referenced results. See [Project context](docs/PROJECT-CONTEXT.md).
 
 The following are stable in KOS Community `1.0.0`, distributed by Starter Kit `v1.2.0` on KOS Core contract `1.0.0`:
 

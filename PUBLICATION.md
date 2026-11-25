@@ -33,14 +33,22 @@ and GitHub Release are complete.
    tag, publish and promote to production only under their respective
    authorizations.
 
+For a checkout enrolled in an organization’s private confidentiality review,
+set the checkout-local Git setting `kos.privacyReceipt` to an absolute receipt
+path outside the checkout. The organization’s scanner keeps its comparison
+terms private and issues a dated PASS receipt for the source fingerprint,
+exact ZIP digest and output filename (`zip_name`, including the extension).
+The build verifies the receipt before publishing the output file. Changes to
+the source, ZIP bytes or filename require a fresh review.
+
 `installer/release-files.json` is the frozen source/test allowlist.
 `installer/archive-files.json` is the narrower client ZIP allowlist. A file must
 be in both lists to ship; new source files are not implicitly published. Tests,
 CI, release tooling, maintainer documentation, reports, local answers/permissions,
 logs, build/test output, PDFs, HTML and private configuration are excluded from
 the ZIP. Historical reports remain in source history.
-`installer/release.json` is authoritative: Starter Kit 1.2.0,
-Community 1.0.0, contract 1.0.0, schema/adapter 1.0.0 and independently
+`installer/release.json` is authoritative: Starter Kit 1.3.0,
+Community 1.1.0, contract 1.0.0, schema/adapter 1.0.0 and independently
 versioned extensions. `python scripts/release.py` rejects any version drift.
 
 NOTICE carries existing attribution; LICENSE retains Apache terms. Commercial

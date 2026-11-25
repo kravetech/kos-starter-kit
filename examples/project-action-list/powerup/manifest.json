@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "schema": "kos-powerup/v1",
+  "type": "powerup",
+  "id": "project-action-list",
+  "name": "Project Action List",
+  "version": "1.0.0",
+  "creator": "KOS Community",
+  "license": "Apache-2.0",
+  "compatibility": {
+    "min": "1.0.0",
+    "maxExclusive": "2.0.0"
+  },
+  "supportedEditions": [
+    "community"
+  ],
+  "scope": "project",
+  "permissions": [
+    "read:selected-project-sources",
+    "write:project-result"
+  ],
+  "dependencies": {
+    "project-action-list-skill": "1.0.0"
+  },
+  "entrypoints": [
+    "shared-skill.json"
+  ],
+  "enabledByDefault": false,
+  "configurationSchema": {
+    "type": "object",
+    "properties": {
+      "maxActions": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "maxActions"
+    ],
+    "additionalProperties": true
+  },
+  "defaults": {
+    "maxActions": 30
+  },
+  "integrity": {
+    "shared-skill.json": "d21be0278fa0041379f28bfd9c62a7f3a15a8a0198fa3aa301f13818228b149b"
+  }
+}

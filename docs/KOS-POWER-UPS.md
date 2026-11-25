@@ -1,137 +1,23 @@
 # KOS Power-Ups
 
-KOS Community 1.0.0 installs Power-Ups through the immutable local package
-lifecycle in [PACKAGES-V1.md](PACKAGES-V1.md). YAML paths described below
-remain for legacy review and read-only discovery.
+A Power-Up adds an optional, independently versioned workflow to a Community vault. The Starter Kit includes the free Project Action List as two installable v1 packages. The owner chooses when to install the Power-Up and its shared Skill and which projects may use them.
 
-> **KOS is the core operating system. KOS Power-Ups are independently
-> installed extensions that integrate with KOS through a controlled,
-> manifest-driven contract.**
+## Try the bundled workflow
 
-## What a Power-Up Is
+The input is one or more selected Markdown meeting notes from an approved project. The output is a new local JSON action list with each open task’s text, project-relative filename and line number. Gemini CLI, Claude Code and Codex CLI use the same Skill. The tutorial also provides a local account-free route. [Free Project Action List tutorial](PROJECT-ACTION-LIST.md)
 
-A Power-Up is optional, separately installable, separately versioned,
-separately upgradeable, separately removable software that connects to a
-Knowledge OS instance. Examples include `kos-lang-extract`, `kos-memory-handoff`,
-and `kos-policy-maker` — but the architecture is generic and not hard-coded to
-those names. Anyone can publish a Power-Up as its own repository or package.
+1. From the extracted kit, validate, install and enable the Skill in `examples/project-action-list/skill/`.
+2. Review the permissions requested by `examples/project-action-list/powerup/`. Approve the package, enable it in the vault and opt in one project.
+3. Select a meeting note and run the documented preparation command for the chosen provider. Save the verified result under a new name in the project’s `Results/` folder.
 
-Power-Ups are never required. A KOS instance with zero Power-Ups installed is
-a complete, fully functional Knowledge OS.
+Removing project opt-in blocks the workflow in that project. Globally disabling the Power-Up blocks it in every project. In either case the host withholds the Skill and selected note content. [Invocation and disable checks](PROJECT-ACTION-LIST.md#run-the-shared-skill)
 
-## What the Starter Kit Provides
+## Build a v1 package
 
-The KOS Starter Kit ships the **integration contract**, not any Power-Up
-itself:
+Start by copying the two package directories in `examples/project-action-list/`. Each has a `manifest.json` with a version, permissions, dependencies, entrypoints and file hashes for its `payload/`. The example Power-Up depends on one exact version of its Skill. The author walkthrough changes a default, builds an updated package, then exercises update, rollback and uninstall. [Author walkthrough](PROJECT-ACTION-LIST.md#adapt-update-and-roll-back) · [v1 package format](PACKAGES-V1.md)
 
-| Provided by the Starter Kit | Not provided by the Starter Kit |
-| --- | --- |
-| `00 - System/Power-Ups/` generated structure (`registry.yaml`, `settings.yaml`, `manifests/`, `README.md`) | Any Power-Up's actual runtime code |
-| The manifest schema (`installer/power-up-manifest.schema.json`) | A marketplace, licensing server, or payment system |
-| Installer questionnaire fields and discovery tooling (`scripts/powerups.ps1` / `scripts/powerups.sh`) | Automatic installation of any module |
-| A generic developer template (`templates/power-up-template/`) | Business logic specific to any one Power-Up |
+The installer stores immutable Power-Up code under `00 - System/Power-Ups/Installed/<id>/<version>/` and Skills under `.agents/skills/<id>/<version>/`. Project opt-in and overrides belong in the selected project’s `power-ups.json`. Package removal preserves user notes, configuration and results. [Package installation and lifecycle](POWER-UP-INSTALLATION-GUIDE.md)
 
-## Where Things Live
+## Legacy YAML discovery
 
-```text
-<workspace-root>/
-├── Obsidian/
-│   └── <Your Knowledge OS>/              # the KOS vault
-│       └── 00 - System/
-│           └── Power-Ups/                # KOS-side metadata only
-│               ├── registry.yaml
-│               ├── settings.yaml
-│               ├── manifests/
-│               └── README.md
-│
-└── KOS Power-Ups/                        # actual Power-Up runtimes (external mode)
-    ├── kos-lang-extract/
-    ├── kos-memory-handoff/
-    └── kos-policy-maker/
-```
-
-`00 - System/Power-Ups/` never contains a full copy of any Power-Up's
-runtime. It stores registration data, a copy of each registered Power-Up's
-manifest (for offline validation), and shared settings. See
-`00 - System/Power-Ups/README.md` in a generated instance for the local
-operating rules, and `templates/power-ups/README.md` in this repository for
-the template that generates it.
-
-## Installation Modes
-
-- **External (default, recommended)** — the Power-Up lives in its own
-  directory outside the vault, typically `${KOS_POWERUPS_HOME}/<power-up-id>`.
-  Independent Git history, clean KOS core, no runtime bloat inside Obsidian.
-- **Embedded (opt-in, off by default)** — the Power-Up's runtime lives under
-  `00 - System/Power-Ups/installed/<power-up-id>/` inside the vault. Useful
-  for portable, self-contained deployments; increases vault size, mixes
-  runtime files with knowledge files, and complicates Git boundaries. The
-  installer never creates the `installed/` folder unless a user explicitly
-  enables embedded installation.
-
-## Lifecycle
-
-```text
-Discover -> Validate -> Install -> Register -> Initialize -> Use
-                                        |
-                             Disable / Upgrade / Repair
-                                        |
-                                    Uninstall
-```
-
-See [the Power-Up installation guide](POWER-UP-INSTALLATION-GUIDE.md) for the
-full command sequence. The shipped `templates/power-up-template/` provides a
-starting structure for package authors.
-
-## Folder Initialization
-
-A Power-Up is installed once but may be **initialized** for any number of
-approved KOS folders (for example, one client folder and one project). This
-never duplicates the Power-Up's runtime; it creates a lightweight workspace
-(by default `<Target>/.kos/power-ups/<id>/`) and records the target in that
-Power-Up's registry entry under `initialized_targets`.
-
-## Security Model
-
-- No Power-Up may access the entire vault by default — only the folders it
-  was explicitly initialized for, plus its own workspace.
-- Credentials are never stored in `registry.yaml`, manifests, or any tracked
-  configuration; Power-Ups read secrets from environment variables or OS
-  secret storage.
-- Direct edits to canonical KOS files (`memory.md`, `handoff.md`, policies,
-  requirements) require the manifest to declare
-  `permissions.canonical_kos_writes.allowed: true` **and** explicit user
-  approval per change — the two are not substitutes for each other.
-- Generated content from a Power-Up is review-first: it lands in a review
-  location before anything counts as approved.
-- Discovery never executes a candidate Power-Up's scripts, never
-  auto-installs dependencies, and never auto-enables a discovered module.
-
-## Context and Token Budget
-
-AI agents must not load every installed Power-Up during routine KOS
-bootstrap. Load `registry.yaml` only when Power-Up availability is relevant
-to the task, and load a specific Power-Up's `SKILL.md`/manifest only when
-that Power-Up is actually being invoked. See `CONTEXT-POLICY.md` and
-`00 - System/Config/ai-context-manifest.yaml` in a generated instance for the
-exact exclusion list (runtime, state, cache, logs, and inbox directories are
-never auto-loaded).
-
-## Versioning
-
-Power-Ups are versioned independently of Starter Kit and KOS Community. An
-existing KOS instance with no `00 - System/Power-Ups/` folder remains valid.
-
-## Non-Negotiable Rules
-
-- Power-Ups are never a mandatory part of KOS.
-- The numbered KOS folder contract (`00` through `09`, plus `99 - Archive`)
-  is never altered by Power-Up support.
-- Discovered scripts are never executed automatically.
-- Dependencies are never installed silently.
-- One shared runtime is never duplicated per initialized folder.
-- Canonical KOS knowledge is never edited without approval.
-- Existing files are never overwritten during installation or migration.
-- Credentials are never stored in manifests or the registry.
-- Not every installed Power-Up is loaded into routine AI context.
-- The architecture is not hard-coded to today's Power-Up names.
+Older Power-Ups can have a `manifest.yaml`, an external runtime directory and entries in a YAML registry. The discovery and status commands inspect those records read-only. To migrate one, review its permissions and payload, create a v1 package and validate it with the local installer. The older template under `templates/power-up-template/` is a reference for this migration. [Legacy discovery commands](POWER-UP-INSTALLATION-GUIDE.md#legacy-yaml-discovery)

@@ -15,6 +15,34 @@ spec.loader.exec_module(release)
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_enrolled_build_requires_matching_external_privacy_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            (repo / ".git").mkdir(parents=True)
+            receipt = base / "receipt.json"
+            setting = mock.Mock(returncode=0, stdout=str(receipt).encode())
+            with mock.patch.object(release.subprocess, "run", return_value=setting):
+                with self.assertRaisesRegex(ValueError, "RECEIPT_REQUIRED"):
+                    release.verify_privacy_receipt(repo, "source", "archive", "release.zip")
+                record = {"result": "PASS", "source_fingerprint": "source", "zip_sha256": "archive",
+                          "review_day_utc": release.datetime.now(release.timezone.utc).date().isoformat()}
+                receipt.write_text(json.dumps(record))
+                with self.assertRaisesRegex(ValueError, "REVIEW_REQUIRED"):
+                    release.verify_privacy_receipt(repo, "source", "archive", "release.zip")
+                record["zip_name"] = "release.zip"
+                receipt.write_text(json.dumps(record))
+                release.verify_privacy_receipt(repo, "source", "archive", "release.zip")
+                for source, archive, name in (("changed", "archive", "release.zip"),
+                                              ("source", "changed", "release.zip"),
+                                              ("source", "archive", "renamed.zip")):
+                    with self.assertRaisesRegex(ValueError, "REVIEW_REQUIRED"):
+                        release.verify_privacy_receipt(repo, source, archive, name)
+                record["review_day_utc"] = "2000-01-01"
+                receipt.write_text(json.dumps(record))
+                with self.assertRaisesRegex(ValueError, "REVIEW_REQUIRED"):
+                    release.verify_privacy_receipt(repo, "source", "archive", "release.zip")
+
     def test_privacy_path_scan_ignores_escaped_fixture_text(self):
         spec = importlib.util.spec_from_file_location("tooling", ROOT / "scripts/tooling.py")
         tooling = importlib.util.module_from_spec(spec)
@@ -74,10 +102,10 @@ class ReleaseTests(unittest.TestCase):
 
     def test_schema_and_template_versions(self):
         meta = json.loads((ROOT / "installer/release.json").read_text(encoding="utf-8"))
-        self.assertEqual(meta["starterKitVersion"], "1.2.0")
+        self.assertEqual(meta["starterKitVersion"], "1.3.0")
         self.assertEqual(meta["edition"], "community")
         self.assertEqual(meta["kosContractVersion"], "1.0.0")
-        self.assertEqual(meta["communityVersion"], "1.0.0")
+        self.assertEqual(meta["communityVersion"], "1.1.0")
         for rel in ("ARCHITECTURE.md", "CHANGELOG.md"):
             self.assertIn("{{starter_kit_version}}", (ROOT / "templates/root" / rel).read_text(encoding="utf-8"))
         for rel in ("ARCHITECTURE.md", "README.md"):

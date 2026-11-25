@@ -8,7 +8,7 @@ Installing KOS Starter Kit creates or updates a KOS Community installation that 
 
 ## Objective
 
-Create new installations, reconcile upgrades and adopt Obsidian vaults without silently overwriting knowledge. Follow [v1.2 operations](docs/INSTALLER-V1.2.md).
+Create new installations, reconcile upgrades and adopt Obsidian vaults using the [Community operation guide](docs/INSTALLER-V1.2.md).
 
 ## Inputs
 
@@ -24,14 +24,14 @@ Never include secrets, personal answers or absolute machine paths in release ass
 
 ## Questionnaire
 
-Use `installer/questionnaire.schema.json`. Existing valid choices and unknown fields win. Arrays retain existing whole values; invalid types block.
+For a new vault, ask for the target folder, preferred name or alias, selected providers and restricted folders. Prepare private answers outside the target. For an update, read the installation records, retain existing choices, confirm privacy exclusions and preview on a disposable copy first. Stop if the original installer version is missing. Follow [the questionnaire](QUESTIONNAIRE.md) and `installer/questionnaire.schema.json`.
 
 ## Installation Modes
 
 1. Create a new KOS (`new`).
 2. Upgrade existing KOS (`upgrade`).
 3. Enhance Obsidian (`enhance`, minimal or complete).
-4. KOS Pro (`pro`, blocked because commercial activation is not included).
+4. Legacy Pro edition conversion (`pro`, blocked). Current commercial workflows use the Community host.
 5. Validate (`validate`, read-only).
 6. Repair (`repair`, approved writes only).
 

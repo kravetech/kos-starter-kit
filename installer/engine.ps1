@@ -356,21 +356,29 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
     if ($Operation -in @('upgrade','repair') -and $kind -notin @('managed-kos','legacy-kos')) { throw 'KOS_NOT_DETECTED' }
     if ($Operation -eq 'enhance' -and $kind -notin @('obsidian-vault','managed-kos')) { throw 'OBSIDIAN_NOT_DETECTED' }
     if ($Operation -eq 'enhance' -and $state -and $state['origin'] -ne 'enhance') { throw 'USE_UPGRADE_FOR_MANAGED_KOS' }
+    $previousVersion = if ($state) { $state['starterKitVersion'] } else { $null }
+    if ($kind -eq 'legacy-kos') {
+        $legacy = Get-KosSafe $Root '00 - System/Installation/installer-state.json'
+        if (Test-Path -LiteralPath $legacy -PathType Leaf) {
+            $record = Read-KosJson $legacy
+            if ($record -isnot [System.Collections.IDictionary]) { throw 'VERSION_RECORD_INVALID' }
+            $previousVersion = $record['installer_version']
+        }
+        if ($null -eq $previousVersion -or ($previousVersion -is [string] -and [string]::IsNullOrWhiteSpace($previousVersion))) {
+            throw 'LEGACY_VERSION_UNKNOWN'
+        }
+        if ($previousVersion -isnot [string] -or $previousVersion -notin $script:KosRelease['supportedUpgradeVersions']) {
+            throw 'VERSION_UNSUPPORTED_OR_DOWNGRADE'
+        }
+    }
     if ($state) { $Profile = $state['profile']; $Answers['installation']['providers'] = $state['providers'];$Answers['installation']['include_samples']=[bool]$state['includeSamples'];$Answers['installation']['custom_modules']=@($state['customModules']) }
     $old = if ($state) { $state['components'] } else { @{} }
     $components = @{}; foreach ($key in $old.psbase.Keys) { $components[$key] = $old[$key] }
     $items = New-Object System.Collections.Generic.List[object]
-    $plan = @{schemaVersion='1.0.0';operation=$Operation;targetType=$kind;previousVersion=$(if($state){$state['starterKitVersion']}else{$null});resultingVersion=$script:KosRelease['starterKitVersion'];edition=$(if($state){Get-KosCanonicalEdition $state['edition']}else{$script:KosRelease['edition']});profile=$Profile;items=$items;links=@($files | Where-Object {$_.kind -eq 'link'} | ForEach-Object {$_.path});decisions=$Decisions;folderMappings=@()}
+    $plan = @{schemaVersion='1.0.0';operation=$Operation;targetType=$kind;previousVersion=$previousVersion;resultingVersion=$script:KosRelease['starterKitVersion'];edition=$(if($state){Get-KosCanonicalEdition $state['edition']}else{$script:KosRelease['edition']});profile=$Profile;items=$items;links=@($files | Where-Object {$_.kind -eq 'link'} | ForEach-Object {$_.path});decisions=$Decisions;folderMappings=@()}
     $plan.inventorySummary=@{files=@($files | Where-Object {$_.kind -eq 'file'}).Count;directories=@($files | Where-Object {$_.kind -eq 'directory'}).Count;links=$plan.links.Count}
     $plan.postActions=@();if($Operation -eq 'new' -and $Answers.installation['initialize_git']){$plan.postActions=@('INITIALIZE_GIT')}
     if($Answers.installation['create_initial_commit']){throw 'INITIAL_COMMIT_REQUIRES_MANUAL_CONTENT_REVIEW'}
-    if ($kind -eq 'legacy-kos') {
-        $legacy = Get-KosSafe $Root '00 - System/Installation/installer-state.json'
-        if (Test-Path -LiteralPath $legacy -PathType Leaf) {
-            $prior = (Read-KosJson $legacy)['installer_version']
-            if ($prior -and $prior -notin $script:KosRelease['supportedUpgradeVersions']) { throw 'VERSION_UNSUPPORTED_OR_DOWNGRADE' }; $plan.previousVersion = $prior
-        }
-    }
     if ($Operation -eq 'enhance') { $plan.folderMappings = @($files | Where-Object {$_.kind -eq 'directory' -and -not $_.path.Contains('/') -and -not $_.path.StartsWith('.')} | ForEach-Object { @{existing=$_.path;recommendation='retain in place; map explicitly in context policy'} }) }
     $catalog = Read-KosJson (Join-Path $PSScriptRoot 'assets.json'); $found = Get-KosEvidence $Root $files
     $historical=(Read-KosJson (Join-Path $PSScriptRoot 'historical-templates.json')).templates
@@ -415,6 +423,11 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
                             if ((Get-KosHash $bytes) -eq $current) {$class='COMPATIBLE_EXISTING';$action='UNCHANGED'}else{$class='CONFIG_CONFLICT';$action='MERGE'}
                         } catch {$class='CONFIG_CONFLICT';$action='BLOCK'}
                     } elseif (-not $old.Contains($rel) -and $plan.previousVersion -eq '1.1.0' -and $current -in $historicalHashes) {$class='OLDER_MANAGED';$action='UPDATE_SAFE'}
+                    elseif ($Operation -eq 'upgrade' -and $old.Contains($rel) -and $Decisions[$rel] -ne 'propose' -and
+                            $current -eq $old[$rel]['installedHash'] -and $asset['releasedDefaults'] -and
+                            $current -eq $asset['releasedDefaults'][$old[$rel]['sourceVersion']]) {
+                        $class='OLDER_MANAGED';$action='UPDATE_SAFE'
+                    }
                     elseif ($old.Contains($rel) -and $current -eq $old[$rel]['installedHash'] -and $owner -in @('managed','managed-customizable')) {
                         if($renderFingerprint -and $old[$rel]['renderFingerprint'] -ne $renderFingerprint){$class='CONFIG_CONFLICT';$action='PROPOSE'}else{$class='OLDER_MANAGED';$action='UPDATE_SAFE'}
                     }
@@ -458,6 +471,13 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
     foreach($cap in $installedCaps){if(-not $merged.Contains($cap.id)){$merged[$cap.id]=$cap}}
     $caps.capabilities=@($merged.psbase.Values | Sort-Object {$_.id});Add-KosMetadata $Root $plan $payload $script:KosCaps (Get-KosBytes $caps)
     $next=if($state){$state.Clone()}else{@{schemaVersion='1.0.0';edition=$script:KosRelease['edition'];origin=$Operation}}
+    $privacy = if ($next.Contains('privacy')) { $next['privacy'].Clone() } else { @{} }
+    $folders = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($folder in (@($privacy['restricted_folders']) + @($Answers['privacy']['restricted_folders']))) {
+        if ($null -ne $folder -and -not $folders.Contains($folder)) { $folders.Add($folder) }
+    }
+    $privacy['restricted_folders'] = $folders.ToArray()
+    $next['privacy'] = $privacy
     $next.edition=Get-KosCanonicalEdition $(if($next['edition']){$next['edition']}else{$script:KosRelease['edition']})
     foreach($key in @('starterKitVersion','installerVersion','communityVersion','kosContractVersion')){$next[$key]=$script:KosRelease[$key]}
     $next.profile=$Profile;$next.providers=$Answers['installation']['providers'];$next.components=$components;$next.capabilities=@($merged.psbase.Keys | Sort-Object)

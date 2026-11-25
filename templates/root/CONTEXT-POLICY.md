@@ -24,6 +24,8 @@ canonical: true
 
 Classify the task, inspect an MOC, search within a bounded scope, read only the relevant section, and stop when enough evidence exists.
 
+For an active project, load the approved pair through the installed project context tool. For additional notes, pass individual project-relative paths to its `sources` or `search` command. Omit a path on the next request to withdraw it. Respect excluded inputs and reported coverage limits. A draft, stale or blocked pair requires owner review before retrieval.
+
 ## Access
 
 Allowed `ai_access`: `public`, `internal`, `restricted`. Missing classification is restricted. Folder policy can narrow but not expand access.
