@@ -421,6 +421,30 @@ def stage_payload(candidate, root=ROOT):
     return payload
 
 
+def verify_privacy_receipt(root, source_fingerprint, archive_digest, archive_name):
+    """Enrolled build checkouts require a current review of the exact output."""
+    if not (root / ".git").exists():
+        return
+    setting = subprocess.run(["git", "-C", str(root), "config", "--local", "--no-includes",
+                              "--get", "kos.privacyReceipt"], capture_output=True)
+    if setting.returncode == 1:
+        return
+    if setting.returncode != 0:
+        raise Blocked("RELEASE_PRIVACY_CONFIGURATION_UNAVAILABLE")
+    location = Path(os.fsdecode(setting.stdout).strip())
+    if not location.is_absolute() or location.resolve().is_relative_to(root.resolve()):
+        raise Blocked("RELEASE_PRIVACY_RECEIPT_MUST_BE_EXTERNAL")
+    if not location.is_file():
+        raise Blocked("RELEASE_PRIVACY_RECEIPT_REQUIRED")
+    review = json_read(location)
+    if (not isinstance(review, dict) or review.get("result") != "PASS"
+            or review.get("source_fingerprint") != source_fingerprint
+            or review.get("zip_sha256") != archive_digest
+            or review.get("zip_name") != archive_name
+            or review.get("review_day_utc") != datetime.now(timezone.utc).date().isoformat()):
+        raise Blocked("RELEASE_PRIVACY_REVIEW_REQUIRED")
+
+
 def build_archive(payload, output, root=ROOT):
     payload = Path(os.path.abspath(payload))
     payload_files, manifest = verify_payload(payload, root, require_tested=True)
@@ -440,6 +464,7 @@ def build_archive(payload, output, root=ROOT):
                     any(digest(archive.read(rel)) != manifest["fileHashes"][rel] for rel in payload_files)):
                 raise Blocked("RELEASE_ARCHIVE_MISMATCH")
         verify_payload(payload, root, require_tested=True)
+        verify_privacy_receipt(root, manifest["sourceFingerprint"], digest(temporary.read_bytes()), output.name)
         # A hard link publishes the verified ZIP atomically and cannot overwrite one.
         os.link(temporary, output)
         print("Archive verified: " + output.name + " sha256=" + digest(output.read_bytes()))

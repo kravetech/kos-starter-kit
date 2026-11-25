@@ -138,6 +138,12 @@ def main(argv=None):
             rule = "INPUT_INVALID"
         blocked = {"operation": args.operation or args.package_command or "new", "targetType": "unsafe-or-invalid", "blocked": True,
                    "items": [{"path": "target", "classification": "BLOCKED", "action": "BLOCK", "rule": rule}]}
+        if rule == "LEGACY_VERSION_UNKNOWN":
+            blocked["targetType"] = "legacy-kos"
+            blocked["requiredAction"] = (
+                "The original installer-state.json has no verified installer_version. "
+                "Recover the original record from a verified backup or request a manual migration review."
+            )
         print("BLOCKED: " + rule, file=sys.stderr)
         try:
             output(blocked, args)

@@ -30,6 +30,42 @@ def write(root, rel, data):
     dest.write_bytes(data if isinstance(data, bytes) else data.encode("utf-8"))
 
 
+# Exact installed bytes from Starter Kit 1.2.0, including its trailing newline.
+MANIFEST_PATH = "00 - System/Config/ai-context-manifest.yaml"
+RELEASED_12_MANIFEST = b"""version: 1.0.0
+budgets:
+  root_memory_tokens: 3000
+  root_handoff_tokens: 2000
+  warning_file_kb: 20
+  large_file_kb: 50
+  very_large_file_kb: 200
+always_loaded:
+  - AGENTS.md
+  - me.md
+project_loaded:
+  - 02 - Projects/Active/*/PROJECT-CONTEXT.md
+on_demand:
+  - ARCHITECTURE.md
+  - DESIGN.md
+  - PRODUCT.md
+  - CHANGELOG.md
+restricted:
+  - 03 - Personal/**
+  - 09 - Attachments/**
+never_auto_load:
+  - 00 - System/Reports/**
+  - 00 - System/State/**
+  - 00 - System/Linked Sources/**
+  - 99 - Archive/**
+  - "**/history/**"
+  - "**/*.log"
+  - "**/*.csv"
+  - "**/*.xml"
+  - "**/*.sqlite"
+  - "**/*.db"
+"""
+
+
 class SafetyTests(unittest.TestCase):
     def setUp(self):
         base = ROOT / "test-output"
@@ -231,6 +267,41 @@ class SafetyTests(unittest.TestCase):
             self.assertEqual((self.vault / "notes/project.md").read_text(), "User knowledge")
             self.assertEqual((self.vault / "AGENTS.md").read_text(), "Customized legacy router")
 
+    def test_unidentified_legacy_vaults_block_before_any_write(self):
+        fixtures = [
+            ("markers-only", None, "upgrade", "approve"),
+            ("missing-version", {}, "repair", "approve"),
+            ("null-version", {"installer_version": None}, "upgrade", "dry-run"),
+            ("empty-version", {"installer_version": ""}, "repair", "dry-run"),
+            ("blank-version", {"installer_version": "  "}, "upgrade", "approve"),
+        ]
+        for name, record, operation, action in fixtures:
+            target = self.base / name
+            write(target, "AGENTS.md", "Owner routing")
+            write(target, "CONTEXT-POLICY.md", "Owner policy")
+            write(target, "00 - System/local.md", "Owner note")
+            if record is not None:
+                write(target, "00 - System/Installation/installer-state.json", encoded(record))
+            before = inventory(target)
+            commands = [[sys.executable, str(ROOT / "installer/install.py"), "--target", str(target),
+                         "--operation", operation, "--" + action]]
+            for shell in ("pwsh", "powershell"):
+                executable = shutil.which(shell)
+                if executable:
+                    flag = "-Approve" if action == "approve" else "-DryRun"
+                    commands.append([executable, "-NoProfile", "-NonInteractive", "-File", str(ROOT / "install.ps1"),
+                                     "-Target", str(target), "-Operation", operation, flag])
+            for command in commands:
+                with self.subTest(fixture=name, engine=command[0]):
+                    result = subprocess.run(command, input=b"", capture_output=True, timeout=90)
+                    self.assertEqual(result.returncode, 2, result.stderr.decode(errors="replace"))
+                    blocked = json.loads(result.stdout.decode("utf-8-sig"))
+                    self.assertTrue(blocked["blocked"])
+                    self.assertEqual(blocked["targetType"], "legacy-kos")
+                    self.assertEqual(blocked["items"][0]["rule"], "LEGACY_VERSION_UNKNOWN")
+                    self.assertIn("installer_version", blocked["requiredAction"])
+                    self.assertEqual(inventory(target), before)
+
     def test_obsidian_minimal_conflicts_idempotent(self):
         write(self.vault, ".obsidian/app.json", '{"userChoice":true}')
         write(self.vault, "AGENTS.md", "Existing router")
@@ -313,6 +384,32 @@ class SafetyTests(unittest.TestCase):
         write(self.vault, "CODEX.md", original)
         p, _ = plan(self.vault, "upgrade", self.answers)
         self.assertEqual(next(i["action"] for i in p["items"] if i["path"] == "CODEX.md"), "UPDATE_SAFE")
+
+    def test_upgrade_migrates_only_verified_released_user_owned_manifest(self):
+        self.install()
+        state = json_read(self.vault / STATE)
+        record = state["components"][MANIFEST_PATH]
+        pristine = RELEASED_12_MANIFEST
+        customized = pristine + b"  - Owner-only/**\n"
+        for version, local, installed, operation, choice, expected in [
+            ("1.2.0", pristine, pristine, "upgrade", None, "UPDATE_SAFE"),
+            ("1.2.0", pristine, pristine, "upgrade", "keep", "PRESERVE"),
+            ("1.2.0", pristine, pristine, "upgrade", "propose", "PROPOSE"),
+            ("1.2.0", pristine, pristine, "repair", None, "PROPOSE"),
+            ("1.2.0", customized, pristine, "upgrade", None, "PROPOSE"),
+            ("1.2.0", customized, customized, "upgrade", None, "PROPOSE"),
+            ("1.2.0", pristine, customized, "upgrade", None, "PROPOSE"),
+            ("unknown", pristine, pristine, "upgrade", None, "PROPOSE"),
+        ]:
+            with self.subTest(version=version, operation=operation, choice=choice, expected=expected):
+                record.update(sourceVersion=version, installedHash=digest(installed))
+                write(self.vault, STATE, encoded(state))
+                write(self.vault, MANIFEST_PATH, local)
+                decisions = {MANIFEST_PATH: choice} if choice else {}
+                planned, _ = plan(self.vault, operation, self.answers, decisions=decisions)
+                item = next(i for i in planned["items"] if i["path"] == MANIFEST_PATH)
+                self.assertEqual((item["action"], item["ownership"]), (expected, "user-owned"))
+                self.assertEqual((self.vault / MANIFEST_PATH).read_bytes(), local)
 
     def test_project_activation_and_configuration_precedence(self):
         from packages import resolve_powerup

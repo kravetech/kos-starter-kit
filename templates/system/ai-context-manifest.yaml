@@ -8,8 +8,8 @@ budgets:
 always_loaded:
   - AGENTS.md
   - me.md
-project_loaded:
-  - 02 - Projects/Active/*/PROJECT-CONTEXT.md
+# Active project records are selected through the project context command.
+project_loaded: []
 on_demand:
   - ARCHITECTURE.md
   - DESIGN.md

@@ -69,6 +69,15 @@
     "components": {
       "type": "object"
     },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "restricted_folders": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "providers": {
       "type": "array",
       "items": {

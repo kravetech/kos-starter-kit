@@ -113,6 +113,10 @@ try {
     while($failure){if($failure -is [IO.IOException] -or $failure -is [UnauthorizedAccessException]){$exitCode=3};$failure=$failure.InnerException}
     if($rule -notmatch '^[A-Z_]+$'){$rule=if($exitCode -eq 3){'IO_FAILURE'}else{'INPUT_INVALID'}}
     $blocked=@{operation=$(if($Operation){$Operation}elseif($PackageCommand){$PackageCommand}else{'new'});targetType='unsafe-or-invalid';blocked=$true;items=@(@{path='target';classification='BLOCKED';action='BLOCK';rule=$rule})}
+    if ($rule -eq 'LEGACY_VERSION_UNKNOWN') {
+        $blocked.targetType = 'legacy-kos'
+        $blocked.requiredAction = 'The original installer-state.json has no verified installer_version. Recover the original record from a verified backup or request a manual migration review.'
+    }
     [Console]::Error.WriteLine('BLOCKED: '+$rule);Write-Output (Get-KosJson $blocked)
     try{if($PlanOutput){Export-KosResult $PlanOutput (Get-KosBytes $blocked)};if($Report){Export-KosResult $Report ($script:Utf8.GetBytes((Get-KosReport $blocked 'BLOCKED')))}}catch{}
     exit $exitCode

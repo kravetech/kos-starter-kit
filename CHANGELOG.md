@@ -1,6 +1,19 @@
 # Changelog
 
-## [1.2.0] - Unreleased
+## [1.3.0] — KOS Community 1.1.0
+
+- Upgrade and repair now stop before writing when a legacy vault has no recorded installer version. Both installer implementations preserve the vault for manual review. The revised setup guide explains the optional editor, the original-version check and how to rehearse upgrades on a copy.
+- Added a reusable meeting template and a worked example covering decisions, owners, dates and open questions. Updated the extension guides with the v1 authoring route, the three supported workflow clients, Community support and the distinction between current workflow offers and the legacy Pro distribution.
+
+- Added the free Project Action List Power-Up and its versioned shared Skill. The customer ZIP includes a meeting-note fixture and a guide to reviewing permissions, activating the example for a project, saving a cited result, updating, rolling back and uninstalling.
+
+- Community 1.1.0 adds draft initialization, review and explicit approval for the selected project's memory and handoff. When an approved note changes, the checker identifies the file. Review loads the last approved local snapshot and shows the changes before reapproval.
+- Inspect selected Markdown sources and search them with line references, work limits and read-only commands. Installation records the selected folder restrictions. Existing project notes remain under owner control.
+- Approval in Git worktrees verifies the snapshot and temporary file are ignored before storing original note bytes. Windows uses the on-disk project name for review identity.
+- Review and search accept common Obsidian properties and apply the receipt's classification to the exact approved memory and handoff revisions. Windows source selections accept native path separators.
+- Project checks distinguish pair approval from pending adoption of upgraded routing instructions and identify which proposal to review. Blocked initialization and review return exit code 2.
+
+## [1.2.0] - 2026-10-02
 
 - Added a frozen, fingerprinted source-candidate gate and a separate positive client ZIP payload list. The exact client files are staged in a reviewable folder and tested for new installation, legacy upgrade and Obsidian enhancement before any archive is created.
 - Added bounded migration link auditing for existing Obsidian wikilinks, embeds and Markdown links. Dry-runs report baseline unresolved links and new basename collisions; newly ambiguous or redirected previously resolved links block apply.

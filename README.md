@@ -1,8 +1,8 @@
-# KOS Starter Kit
+# KOS Community
 
-The official open-source bootstrap distribution for KOS Community, built on the shared KOS Core architecture.
+KOS Community 1.1.0 is a portable Markdown workspace for notes, projects and AI-assisted workflows. Starter Kit 1.3.0 is its installer and handles upgrades from earlier releases.
 
-KOS Starter Kit provides a Markdown-first, AI-ready installer for creating a portable Knowledge OS for business, projects, personal work, research, learning, and AI-assisted execution.
+Obsidian is optional. Choose a new or empty folder for KOS Community, then open it in your preferred Markdown editor. For an existing KOS vault, follow the [update instructions](INSTALL.md#update-an-existing-kos-vault).
 
 ## Where This Fits
 
@@ -11,28 +11,26 @@ KOS Starter Kit provides a Markdown-first, AI-ready installer for creating a por
 - **KOS Core** — shared technical architecture and compatibility contract.
 - **KOS Community** — free and open-source edition.
   - **KOS Starter Kit** — official open-source bootstrap distribution.
-- **KOS Pro** — separately licensed commercial edition.
+- **Commercial workflows** run as Power-Ups on the Community host. An individual purchase grants use of the purchased version. The combined Academy Pro + KOS Pro subscription covers eligible workflows included in the plan. A workflow marked for separate purchase requires its own purchase.
+- **Legacy Pro 1.1.0** is an earlier commercial distribution with its own license.
 - **KOS Enterprise** — planned organizational and multi-user edition.
 
-KOS Community remains independently useful and does not require a KOS Pro entitlement.
+The bundled Project Action List Power-Up and its local automation are free to use on Community.
 
 ## What It Generates
 
 - Numbered Obsidian-compatible domain structure.
-- Canonical `AGENTS.md` router with thin Claude and Codex adapters.
+- Canonical `AGENTS.md` router and adapter instructions for Gemini CLI, Claude Code and Codex CLI.
 - Durable `memory.md` and current-state `handoff.md`.
 - Context, metadata, privacy, token, archive, and automation policies.
 - Optional examples, Git initialization, and migration-safe conflict files.
 - Installation state, privacy scan, and validation report.
 
-## Supported Execution
+## Installation and workflow clients
 
-- Codex CLI
-- Claude Code
-- PowerShell 7+
-- Bash 4+ with Python 3
-- Obsidian and VS Code
-- Any capable agent that can execute `KOS-INSTALLER.md`
+Use the direct installer with Windows PowerShell 5.1, PowerShell 7, or Bash with Python 3.10+. For agent-assisted setup, the initialize scripts accept `gemini`, `claude`, `codex` or `auto` and launch an installed CLI. The resulting Markdown vault opens in Obsidian or VS Code. [Installation guide](INSTALL.md)
+
+After setup, Gemini CLI, Claude Code and Codex CLI can each call the same versioned Skill for the free Project Action List. Install the two packages, review permissions and opt in the selected project. The tutorial also includes an account-free local run. [Project Action List tutorial](docs/PROJECT-ACTION-LIST.md)
 
 ## Quick Start
 
@@ -48,11 +46,10 @@ macOS or Linux:
 ./initialize.sh --agent codex
 ```
 
-Direct answer-file installation:
+To preview a direct installation on Windows, prepare your own [answers file](QUESTIONNAIRE.md) and run:
 
 ```powershell
-.\install.ps1 -Answers .\installer\answers.example.json -DryRun
-.\install.ps1 -Answers .\installer\answers.example.json
+.\install.ps1 -Operation new -Target ..\DemoVault -Answers .\installer\answers.json -DryRun
 ```
 
 ## Privacy Model
@@ -71,7 +68,15 @@ Generated Knowledge OS repositories are private by default. They may contain ide
 
 ## Status
 
-Starter Kit 1.2.0 targets KOS Community 1.0.0 and KOS Core contract 1.0.0. Follow [INSTALL.md](INSTALL.md) for current installation and upgrade commands.
+This package contains KOS Community 1.1.0 and Starter Kit 1.3.0 with KOS Core contract 1.0.0. Follow [INSTALL.md](INSTALL.md) for installation and upgrade commands. See [Project context](docs/PROJECT-CONTEXT.md) to set up one project and search its selected notes.
+
+## Learning and support
+
+Start with the bundled free tutorial to turn selected meeting tasks into a cited action list, adapt the example and roll back an update. [Project Action List tutorial](docs/PROJECT-ACTION-LIST.md)
+
+For ordinary bugs or documentation questions, search or open an issue. Include the kit and package versions, the command, the error and a small synthetic example. Community support is best effort. [Public issue tracker](https://github.com/kravetech/kos-starter-kit/issues)
+
+Report suspected vulnerabilities or privacy leaks through the private route. [Security reporting instructions](SECURITY.md)
 
 ## License
 
@@ -79,6 +84,6 @@ This project is licensed under the Apache License 2.0.
 
 See the [LICENSE](LICENSE) file for the full license text and the [NOTICE](NOTICE) file for attribution information.
 
-## v1.2 safe operations
+## Installation and recovery
 
-See [installation, upgrade and recovery](docs/INSTALLER-V1.2.md) and [local packages](docs/PACKAGES-V1.md). Start with a dry-run. New installs create; upgrades reconcile; Obsidian enhancements adopt. The public installer does not implement KOS Pro activation.
+Start with a dry run. New installs create a vault, upgrades reconcile managed files, and Obsidian enhancements adopt an existing vault. [Installation, upgrade and recovery](docs/INSTALLER-V1.2.md) · [Local packages](docs/PACKAGES-V1.md)

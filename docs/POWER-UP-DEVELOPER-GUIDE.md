@@ -1,7 +1,15 @@
 # Power-Up Developer Guide
 
-Start from `templates/power-up-template/` (copy it out to its own repository
-and rename `kos-example` throughout).
+For installable v1 packages, start with the [Project Action List authoring
+tutorial](PROJECT-ACTION-LIST.md). It includes the manifests, a single shared
+Skill, project opt-in and an update and rollback exercise in the customer ZIP.
+The [v1 package format](PACKAGES-V1.md) describes the immutable installer.
+
+## Legacy YAML authoring reference
+
+The rest of this guide describes the earlier discovery template under
+`templates/power-up-template/`. Use it when maintaining an existing YAML
+package or reviewing one for migration.
 
 ## Package Structure
 
@@ -121,4 +129,6 @@ The starter kit does not implement a marketplace, license server, or payment
 system. It leaves the extension points open: a Power-Up can be a free
 open-source repository, a private company package, installed from a local
 folder, a Git repository, or a packaged release. Publish it however fits —
-the only requirement KOS itself enforces is a valid `manifest.yaml`.
+the legacy discovery command expects a valid `manifest.yaml`. For an installable
+v1 release, use the JSON manifest, declared payload files and integrity hashes
+in the [package format](PACKAGES-V1.md).

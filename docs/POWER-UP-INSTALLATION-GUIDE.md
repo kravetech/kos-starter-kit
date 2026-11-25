@@ -1,50 +1,10 @@
 # Power-Up Installation Guide
 
-KOS Community 1.0.0 installs Power-Ups through the immutable local package
-lifecycle in [PACKAGES-V1.md](PACKAGES-V1.md). The YAML workflow below is
-legacy context for read-only discovery. It must not be used for v1.2 installs.
+For a first installation, use the two packages in the extracted kit and follow the walkthrough from permission review through your first result. [Free Project Action List tutorial](PROJECT-ACTION-LIST.md)
 
-This guide covers package installation, activation, and lifecycle operations
-against an existing KOS instance, plus read-only review of older YAML Power-Ups.
+## Install a v1 package
 
-## 1. Keep package source outside the vault
-
-Recommended (external, default) layout:
-
-```text
-<workspace-root>/
-├── Obsidian/<Your KOS Vault>/
-└── KOS Power-Ups/
-    └── kos-example/          # this Power-Up's own repository/package
-```
-
-For older YAML discovery only, set the environment variable your KOS instance
-is configured to look for
-(`00 - System/Power-Ups/settings.yaml` -> `power_ups.home_environment_variable`,
-`KOS_POWERUPS_HOME` by default) to the parent directory (`KOS Power-Ups/`
-above), or pass `-HomeDirectory` / `--home` explicitly to the commands below.
-
-## 2. Discover
-
-```powershell
-./scripts/powerups.ps1 discover -InstallationRoot "<path-to-your-kos>"
-```
-
-```bash
-./scripts/powerups.sh discover "<path-to-your-kos>"
-```
-
-This scans the configured home directory for subdirectories containing a
-`manifest.yaml`, validates each one (unique id, semantic version, KOS
-compatibility, declared permissions, lifecycle commands), and reports
-`PASS`, `WARNING`, or `ERROR` per candidate. **Nothing in the candidate
-directory is ever executed.** Nothing is registered by this step.
-
-## 3. Install a reviewed v1.2 package
-
-The legacy `register` command is blocked in both wrappers. Repackage a YAML
-candidate with `manifest.json` and integrity-checked `payload/` before using
-the v1.2 package installer. Validate and dry-run it first:
+Keep the package source outside the target vault. The installer accepts a package directory or a `.kospkg` archive containing `manifest.json` and integrity-checked files under `payload/`. Validate the package, then preview the install.
 
 ```powershell
 ./install.ps1 -Target "<path-to-your-kos>" -PackageCommand validate -Package "<package-directory-or-kospkg>"
@@ -61,17 +21,13 @@ planned file changes. Apply with `-Approve` / `--approve`; nonempty permission
 requests additionally need `-ApprovePermissions` / `--approve-permissions`.
 The package installer does not execute package entrypoints or discovered scripts.
 
-## 4. Activate for a project
+## Enable and opt in a project
 
-If the package supports project scope, record its exact installed identity in
-`02 - Projects/Active/<Project>/power-ups.json` using the shipped project
-activation schema. Review the package's requested permissions for that project.
-Runtime consumers must enforce global enabled status and installed integrity.
+After installation, enable each dependency and the Power-Up with `-PackageCommand enable -Id <id> -Approve` or `--package-command enable --id <id> --approve`. For a project-scoped workflow, record the opt-in in `02 - Projects/Active/<Project>/power-ups.json`. A missing opt-in or global disable blocks the bundled workflow. [Project activation example](PROJECT-ACTION-LIST.md#install-and-opt-in)
 
-## 5. Use
+## Run the workflow
 
-Invoke the approved package's declared entrypoint only when the Power-Up is
-needed for a task. The package installer does not run it automatically.
+For Project Action List, select the source notes and use the same shared Skill with Gemini CLI, Claude Code or Codex CLI. The tutorial also includes an account-free local route. [Prepare and save the result](PROJECT-ACTION-LIST.md#run-the-shared-skill)
 
 ## Disable
 
@@ -84,21 +40,9 @@ Use `-PackageCommand update -Package <new-package>` or its Bash equivalent.
 The v1.2 engine keeps the prior immutable version for reviewed rollback and
 preserves user configuration. See [the package lifecycle](PACKAGES-V1.md).
 
-## Repair
+## Inspect installed packages
 
-For a legacy YAML registry, the read-only `status` command reports entries and
-missing local manifests or external runtimes:
-
-```powershell
-./scripts/powerups.ps1 status -InstallationRoot "<path-to-your-kos>"
-```
-
-```bash
-./scripts/powerups.sh status "<path-to-your-kos>"
-```
-
-`status` never modifies files. For v1.2 packages, use `-PackageCommand list`
-or `--package-command list`, then validate the KOS installation.
+Use `-PackageCommand list` or `--package-command list`, then validate the KOS installation.
 
 ## Uninstall
 
@@ -118,3 +62,19 @@ upgrade with the v1.2 installer and review the missing assets:
 Approved reconciliation creates only the missing compatible structure and
 preserves existing files. Older YAML registries require manual review before
 adoption into the immutable package registry.
+
+## Legacy YAML discovery
+
+Use these commands only when inspecting an older `manifest.yaml` layout. Point `KOS_POWERUPS_HOME` or the configured home environment variable at the parent of the external package directories. The wrappers also accept an explicit home directory.
+
+```powershell
+./scripts/powerups.ps1 discover -InstallationRoot "<path-to-your-kos>"
+./scripts/powerups.ps1 status -InstallationRoot "<path-to-your-kos>"
+```
+
+```bash
+./scripts/powerups.sh discover "<path-to-your-kos>"
+./scripts/powerups.sh status "<path-to-your-kos>"
+```
+
+Discovery checks manifests and reports findings. Status inspects registered entries and reports missing files. Both operations are read-only. To install a reviewed legacy package, migrate its manifest and payload to the v1 format. [Package format](PACKAGES-V1.md)

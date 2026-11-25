@@ -1,0 +1,6 @@
+{
+  "skillId": "project-action-list-skill",
+  "version": "1.0.0",
+  "entrypoint": "SKILL.md",
+  "sha256": "edd2c6fe142779115f8fd42e23b1194fbba1b82b974cfa8c554a3534ae004780"
+}

@@ -20,6 +20,18 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
+      - name: Use a physical temporary directory for macOS tests
+        if: runner.os == 'macOS'
+        shell: python
+        run: |
+          import os
+          import tempfile
+          from pathlib import Path
+
+          runner_temp = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+          fixture_root = tempfile.mkdtemp(prefix="kos-ci-", dir=runner_temp)
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as job_env:
+              print(f"TMPDIR={fixture_root}", file=job_env)
       - name: Python migrations, packages, rollback, privacy, links and golden plans
         run: python -m unittest discover -s tests -v
       - name: Starter validation and release allowlist
