@@ -1,4 +1,4 @@
-"""Upgrades use the vault's live history and verified questionnaire inputs."""
+"""Existing KOS vaults use their live history and verified questionnaire inputs."""
 import json
 import os
 from pathlib import Path
@@ -11,6 +11,65 @@ import unittest
 from test_safety import ROOT, RUNS, STATE, answers_read, apply, digest, encoded, json_read, plan, write
 from contracts import RELEASE
 from engine import contents
+
+
+class EnhanceAnswersTests(unittest.TestCase):
+    def test_repeat_enhance_uses_only_explicit_answers(self):
+        commands = [("python", [sys.executable, "-B", str(ROOT / "installer/install.py"),
+                                "--operation", "enhance", "--approve", "--target"], "--answers")]
+        for name in ("pwsh", "powershell"):
+            shell = shutil.which(name)
+            if shell:
+                commands.append((name, [shell, "-NoProfile", "-File", str(ROOT / "install.ps1"),
+                                        "-Operation", "enhance", "-Approve", "-Target"], "-Answers"))
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            original = base / "original.json"
+            original.write_bytes(encoded({"user": {"preferred_name": "Avery Example"},
+                                          "system": {"name": "Harbor Notes"},
+                                          "privacy": {"restricted_folders": ["Private Notes"]}}))
+            partial = base / "partial.json"
+            partial.write_bytes(encoded({"system": {"name": "New Harbor"},
+                                         "privacy": {"restricted_folders": ["New Private Notes"]}}))
+            for name, command, answers_flag in commands:
+                with self.subTest(engine=name):
+                    vault = base / name
+                    write(vault, ".obsidian/app.json", "{}")
+
+                    def enhance(answers_file=None):
+                        args = [*command, str(vault)]
+                        if answers_file:
+                            args.extend([answers_flag, str(answers_file)])
+                        result = subprocess.run(args, capture_output=True, timeout=120)
+                        self.assertEqual(result.returncode, 0, (result.stderr or result.stdout)[-600:])
+
+                    enhance(original)
+                    readme = vault / "README.md"
+                    live = readme.read_bytes() + b"\nOwner's local workflow.\n"
+                    self.assertIn(b"# Harbor Notes", live)
+                    self.assertIn(b"Owner: Avery Example", live)
+                    self.assertIn(b"Timezone: UTC", live)  # First enhancement fills omitted fields.
+                    readme.write_bytes(live)
+                    receipt = (vault / STATE).read_bytes()
+                    self.assertEqual(json.loads(receipt)["privacy"]["restricted_folders"], ["Private Notes"])
+                    runs = set((vault / RUNS).iterdir())
+
+                    enhance()
+                    self.assertEqual(set((vault / RUNS).iterdir()), runs)
+                    self.assertEqual((vault / STATE).read_bytes(), receipt)
+                    self.assertEqual(readme.read_bytes(), live)
+
+                    enhance(partial)
+                    new_runs = set((vault / RUNS).iterdir()) - runs
+                    self.assertEqual(len(new_runs), 1)
+                    proposals = new_runs.pop() / "proposals"
+                    self.assertEqual([p.relative_to(proposals).as_posix() for p in proposals.rglob("*") if p.is_file()],
+                                     ["00 - System/Home.md"])
+                    self.assertIn(b"# New Harbor Home", (proposals / "00 - System/Home.md").read_bytes())
+                    self.assertEqual(json_read(vault / STATE)["privacy"]["restricted_folders"],
+                                     ["Private Notes", "New Private Notes"])
+                    self.assertEqual(readme.read_bytes(), live)
 
 
 class UpgradeAnswersTests(unittest.TestCase):

@@ -2,6 +2,8 @@
 from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
+import shutil
+import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -10,6 +12,41 @@ from test_safety import ROOT, STATE, answers_read, apply, digest, encoded, json_
 
 
 class InstallationDateTests(unittest.TestCase):
+    def test_multiline_description_in_verified_legacy_readme(self):
+        date_line_example = "First paragraph.\n\nInstalled: 1999-01-01\n\nSecond paragraph."
+        ambiguous = "Reference metadata:\n\nOwner: Example\nTimezone: UTC\nInstalled: 1999-01-01\n\n## KOS Distribution"
+        cases = (("## Core Areas", date_line_example, "2000-02-29"),
+                 ("## KOS Distribution", date_line_example, "2000-02-29"),
+                 ("## Core Areas", ambiguous, None))
+        for boundary, description, expected in cases:
+            with self.subTest(boundary=boundary, description=description), TemporaryDirectory() as temp:
+                vault = Path(temp) / "vault"
+                supplied = {"system": {"description": description, "installation_date": "2000-02-29"}}
+                first, payload = plan(vault, "new", answers_read(supplied), "minimal")
+                apply(vault, first, payload)
+                state = json_read(vault / STATE)
+                del state["installationDate"]
+                heading = f"## KOS Community `{state['communityVersion']}`".encode()
+                before_release, release_section = payload["README.md"].split(heading, 1)
+                if boundary == "## Core Areas":
+                    # Early releases had no version section between setup and the domain list.
+                    legacy = before_release + b"## Core Areas\n" + release_section.split(b"## Core Areas\n", 1)[1]
+                else:
+                    legacy = before_release + b"## KOS Distribution" + release_section
+                state.update(communityVersion="1.1.0", installerVersion="1.3.0", starterKitVersion="1.3.0")
+                state["components"]["README.md"].update(installedHash=digest(legacy), sourceVersion="1.3.0")
+                write(vault, "README.md", legacy)
+                write(vault, STATE, encoded(state))
+                upgrade, rendered = plan(vault, "upgrade", answers_read({}), supplied_answers={})
+                self.assertEqual(upgrade.get("installationDate"), expected)
+                self.assertEqual(json.loads(rendered[STATE]).get("installationDate"), expected)
+                shell = shutil.which("powershell") or shutil.which("pwsh")
+                if shell:
+                    result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-File", str(ROOT / "install.ps1"),
+                                             "-Target", str(vault), "-Operation", "upgrade", "-DryRun"],
+                                            capture_output=True, check=True, timeout=120)
+                    self.assertEqual(json.loads(result.stdout.decode("utf-8-sig")).get("installationDate"), expected)
+
     def test_new_default_example_and_explicit_dates_survive_later_runs(self):
         instant = datetime(2030, 1, 31, 17, 30, tzinfo=timezone.utc)
         local_day = instant.astimezone(timezone(timedelta(hours=8))).date()

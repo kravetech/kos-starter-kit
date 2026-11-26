@@ -2,7 +2,9 @@
 
 Starting with 1.3.1, the Community product, installer and distribution use one release number. Earlier bracketed headings identify distribution versions. Distribution `1.3.0` shipped KOS Community `1.1.0`.
 
-## KOS Community 1.3.1 (unreleased)
+## KOS Community 1.3.1
+
+Release date: 2026-11-26
 
 Distribution tag `v1.3.1`. KOS Core contract `1.0.0`.
 
@@ -10,6 +12,7 @@ Distribution tag `v1.3.1`. KOS Core contract `1.0.0`.
 - Installation and upgrade reports identify the Community version first. The installation record retains separate fields for reading older vaults.
 - Upgrades preserve existing changelog history and offer a separate upgrade entry for review.
 - Fresh installations use the computer’s local setup date unless the owner supplies a date. Upgrades and repairs preserve a known original installation date. The upgrade changelog entry uses the local day of the upgrade.
+- Upgrades can recover the original installation date from an unchanged installer-created README with a multiline description. Repeating an enhancement with no new answers preserves the vault’s existing personalization and privacy settings.
 - Legacy Power-Up discovery checks the recorded Core contract or the explicit Core contract in vault architecture. If neither identifies the contract, discovery reports that compatibility could not be checked.
 - The Power-Up guides distinguish the v1 package format from the current installer. The upgrade guide identifies the distribution field used by managed vaults and the installer field used by legacy vaults.
 - When original setup answers are unavailable, the installer can propose recognized version changes while preserving the vault’s identity and custom text. Validation reports identify each modified file and the severity of the finding.

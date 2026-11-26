@@ -65,7 +65,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          bash -n install.sh initialize.sh scripts/*.sh
+          git ls-files -z -- '*.sh' | xargs -0 -n 1 bash -n --
           bash install.sh --answers installer/answers.example.json --target test-output/bash-vault --operation new --approve
           bash install.sh --target test-output/bash-vault --operation validate
       - name: ShellCheck

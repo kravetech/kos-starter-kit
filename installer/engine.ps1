@@ -424,10 +424,11 @@ function Get-KosInstallationDate([string]$Root, $State, $Files, $Answers, [bool]
             $raw = [IO.File]::ReadAllBytes($path)
             if ((Get-KosHash $raw) -eq $registeredHash) {
                 $text = [Text.Encoding]::UTF8.GetString($raw)
-                $header = [regex]::Match($text, '^\uFEFF?# [^\r\n]+\r?\n\r?\n[^\r\n]*\r?\n\r?\nOwner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\nInstalled: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)')
+                # The setup block precedes the Core Areas or version section, even with a multiline description.
+                $dateBlocks = [regex]::Matches($text, '(?m)^Owner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\nInstalled: ([0-9]{4}-[0-9]{2}-[0-9]{2})\r?\n\r?\n## (?:Core Areas|KOS Distribution|KOS Community `[0-9]+\.[0-9]+\.[0-9]+`)\r?$')
                 $parsed = [DateTime]::MinValue
-                if ($header.Success -and [DateTime]::TryParseExact($header.Groups[1].Value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) {
-                    return $header.Groups[1].Value
+                if ($dateBlocks.Count -eq 1 -and [DateTime]::TryParseExact($dateBlocks[0].Groups[1].Value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    return $dateBlocks[0].Groups[1].Value
                 }
             }
         }
@@ -473,7 +474,7 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
     if ($Operation -eq 'enhance') { $plan.folderMappings = @($files | Where-Object {$_.kind -eq 'directory' -and -not $_.path.Contains('/') -and -not $_.path.StartsWith('.')} | ForEach-Object { @{existing=$_.path;recommendation='retain in place; map explicitly in context policy'} }) }
     $catalog = Read-KosJson (Join-Path $PSScriptRoot 'assets.json'); $found = Get-KosEvidence $Root $files
     $historical=(Read-KosJson (Join-Path $PSScriptRoot 'historical-templates.json')).templates
-    $checkAnswers = $null -ne $SuppliedAnswers -and $Operation -in @('upgrade','repair')
+    $checkAnswers = $null -ne $SuppliedAnswers -and $kind -in @('managed-kos','legacy-kos')
     $suppliedTokens = @{}
     if ($checkAnswers) {
         foreach ($section in @('user','system','privacy','rhythm')) {

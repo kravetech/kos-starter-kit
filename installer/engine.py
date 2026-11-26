@@ -339,12 +339,14 @@ def installation_date(root, state, files, answers, first_install):
         path = safe(root, "README.md")
         raw = path.read_bytes()
         if digest(raw) == registered_hash:
-            header = re.match(rb"^(?:\xef\xbb\xbf)?# [^\r\n]+\r?\n\r?\n[^\r\n]*\r?\n\r?\n"
-                              rb"Owner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\n"
-                              rb"Installed: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)", raw)
-            if header:
+            # Descriptions can span paragraphs. Match the setup block at the
+            # start of a released template's Core Areas or version section.
+            dates = re.findall(rb"(?m)^Owner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\n"
+                               rb"Installed: ([0-9]{4}-[0-9]{2}-[0-9]{2})\r?\n\r?\n"
+                               rb"## (?:Core Areas|KOS Distribution|KOS Community `[0-9]+\.[0-9]+\.[0-9]+`)\r?$", raw)
+            if len(dates) == 1:
                 try:
-                    return date.fromisoformat(header[1].decode("ascii")).isoformat()
+                    return date.fromisoformat(dates[0].decode("ascii")).isoformat()
                 except ValueError:
                     pass
     supplied = answers["system"].get("installation_date")
@@ -388,7 +390,7 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
         answers["installation"]["custom_modules"] = state.get("customModules", [])
     old_assets = state.get("components", {}) if state else {}
     desired = contents(answers, profile, state)
-    check_answers = supplied_answers is not None and operation in {"upgrade", "repair"}
+    check_answers = supplied_answers is not None and kind in {"managed-kos", "legacy-kos"}
     supplied_tokens = explicit_template_tokens(supplied_answers) if check_answers else set()
     if original_date:
         supplied_tokens.add("installation_date")
