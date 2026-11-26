@@ -5,6 +5,7 @@ $script:KosState = '00 - System/Installation/kos-installation.json'
 $script:KosRuns = '00 - System/Installation/Runs'
 $script:KosCaps = '00 - System/Config/capabilities.json'
 $script:Utf8 = New-Object System.Text.UTF8Encoding($false)
+. (Join-Path $PSScriptRoot 'community-documents.ps1')
 
 function Convert-KosObject($Value) {
     if ($null -eq $Value) { return $null }
@@ -99,6 +100,18 @@ function Get-KosSafe([string]$Root, [string]$Relative = '') {
         if ($parent -eq $node) { break }; $node = $parent
     }
     return $path
+}
+function Get-KosExportPath([string]$Path, [string]$TargetRoot) {
+    if (-not $Path) { return }
+    $destination = [IO.Path]::GetFullPath($Path)
+    $null = Get-KosSafe (Split-Path -Parent $destination) (Split-Path -Leaf $destination)
+    $normalizedRoot = [IO.Path]::GetFullPath($TargetRoot).TrimEnd('\','/')
+    $separator = [IO.Path]::DirectorySeparatorChar
+    if ($destination -eq $normalizedRoot -or $destination.StartsWith($normalizedRoot + $separator, [StringComparison]::OrdinalIgnoreCase) -or $normalizedRoot.StartsWith($destination + $separator, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'DRY_RUN_EXPORT_MUST_BE_OUTSIDE_TARGET'
+    }
+    if (Test-Path -LiteralPath $destination) { throw 'REPORT_DESTINATION_EXISTS' }
+    return $destination
 }
 function Get-KosTarget([string]$Root) {
     $path = Get-KosSafe $Root
@@ -295,7 +308,9 @@ function Get-KosState([string]$Root) {
     if (-not (Test-Path -LiteralPath $path)) { return $null }
     $state = Read-KosJson $path; Assert-KosSchema 'installation' $state
     if ((Get-KosCanonicalEdition $state['edition']) -ne 'community') { throw 'EDITION_UNSUPPORTED' }
-    if ($state['starterKitVersion'] -notin $script:KosRelease['supportedUpgradeVersions'] -or [version]$state['kosContractVersion'] -gt [version]$script:KosRelease['kosContractVersion']) { throw 'VERSION_UNSUPPORTED_OR_DOWNGRADE' }
+    if ($state['starterKitVersion'] -notin $script:KosRelease['supportedUpgradeVersions']) { throw 'VERSION_UNSUPPORTED_OR_DOWNGRADE' }
+    if ([version]$state['installerVersion'] -gt [version]$script:KosRelease['installerVersion']) { throw 'INSTALLER_DOWNGRADE' }
+    if ([version]$state['kosContractVersion'] -gt [version]$script:KosRelease['kosContractVersion']) { throw 'CONTRACT_DOWNGRADE' }
     if ($state['communityVersion'] -and [version]$state['communityVersion'] -gt [version]$script:KosRelease['communityVersion']) { throw 'COMMUNITY_DOWNGRADE' }
     foreach ($rel in $state['components'].psbase.Keys) { Test-KosRelative $rel; Assert-KosSchema 'asset' $state['components'][$rel]; if ($state['components'][$rel]['path'] -cne $rel) { throw 'ASSET_PATH_MISMATCH' } }
     return $state
@@ -350,7 +365,77 @@ function Add-KosMetadata($Root, $Plan, $Payload, $Relative, [byte[]]$Bytes) {
     $Plan.items.Add(@{path=$Relative;classification=$class;action=$action;currentHash=$current;desiredHash=$hash;ownership='managed'})
     $Payload[$Relative] = $Bytes
 }
-function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profile='standard', $Decisions=@{}) {
+function Get-KosUpgradeChangelog([string]$Path, $Current, $State, $PreviousVersion, $PreviousRecord) {
+    if (-not $State) { $State = @{} }
+    if (-not $PreviousRecord) { $PreviousRecord = @{} }
+    [byte[]]$raw = @()
+    $class = 'MISSING'
+    if ($null -ne $Current) { $raw = [IO.File]::ReadAllBytes($Path); $class = 'USER_MODIFIED' }
+    $previousCommunity = $State['communityVersion']
+    $previousInstaller = $State['installerVersion']
+    $target = $script:KosRelease.communityVersion
+    $installer = $script:KosRelease.installerVersion
+    $transitioning = $PreviousVersion -and (
+        $PreviousVersion -ne $script:KosRelease.starterKitVersion -or
+        ($previousCommunity -and $previousCommunity -ne $target) -or
+        ($previousInstaller -and $previousInstaller -ne $installer))
+    if (-not $transitioning) {
+        $expected = if ($PreviousRecord['proposalHash']) { $PreviousRecord['proposalHash'] } else { $PreviousRecord['installedHash'] }
+        if ($null -ne $Current -and $Current -eq $expected) {
+            return @{classification='IDENTICAL'; action='UNCHANGED'; bytes=$raw}
+        }
+        return @{classification=$class; action='PRESERVE'; bytes=$raw}
+    }
+    try {
+        $decoder = New-Object System.Text.UTF8Encoding($false, $true)
+        $text = $decoder.GetString($raw)
+        if ($text.Length -and $text[0] -eq [char]0xfeff) { $text = $text.Substring(1) }
+    } catch [System.Text.DecoderFallbackException] {
+        return @{classification=$class; action='PRESERVE'; bytes=$raw}
+    }
+    if ($text.Contains([string][char]0)) { return @{classification=$class; action='PRESERVE'; bytes=$raw} }
+    $newline = if ($text.Contains("`r`n")) { "`r`n" } elseif ($text.Contains("`r")) { "`r" } else { "`n" }
+    $normalized = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $heading = "## KOS Community [$target]"
+    $detail = if ($previousCommunity -and $previousCommunity -ne $target) {
+        "- Upgraded from KOS Community $previousCommunity using installer $installer."
+    } elseif ($previousInstaller -and $previousInstaller -ne $installer) {
+        "- Updated the installer from $previousInstaller to $installer."
+    } else { "- Updated the vault using installer $installer." }
+    $entryPattern = '(?m)^' + [regex]::Escape($heading) + ' - \d{4}-\d{2}-\d{2}\n\n' + [regex]::Escape($detail) + '$'
+    if ([regex]::IsMatch($normalized, $entryPattern)) { return @{classification=$class; action='PRESERVE'; bytes=$raw} }
+    $date = (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+    $prefix = if (-not $text.Length) { "# Changelog`n`n" } else {
+        $trailingNewlines = $normalized.Length - $normalized.TrimEnd([char]10).Length
+        "`n" * [Math]::Max(0, 2 - $trailingNewlines)
+    }
+    $addition = ($prefix + "$heading - $date`n`n$detail`n").Replace("`n", $newline)
+    return @{classification=$class; action='PROPOSE'; bytes=[byte[]]($raw + $script:Utf8.GetBytes($addition))}
+}
+
+function Get-KosInstallationDate([string]$Root, $State, $Files, $Answers, [bool]$FirstInstall) {
+    if ($State -and $State['installationDate']) { return $State['installationDate'] }
+    $readme = if ($State) { $State['components']['README.md'] }
+    # Manually accepting a proposal records its hash without proving its date.
+    if ($readme -and $readme['lastInstallerAction'] -ceq 'CREATE') {
+        $registeredHash = $readme['installedHash']
+        if ($registeredHash -and ($Files | Where-Object { $_.path -ceq 'README.md' -and $_['hash'] -eq $registeredHash })) {
+            $path = Get-KosSafe $Root 'README.md'
+            $raw = [IO.File]::ReadAllBytes($path)
+            if ((Get-KosHash $raw) -eq $registeredHash) {
+                $text = [Text.Encoding]::UTF8.GetString($raw)
+                $header = [regex]::Match($text, '^\uFEFF?# [^\r\n]+\r?\n\r?\n[^\r\n]*\r?\n\r?\nOwner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\nInstalled: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)')
+                $parsed = [DateTime]::MinValue
+                if ($header.Success -and [DateTime]::TryParseExact($header.Groups[1].Value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+                    return $header.Groups[1].Value
+                }
+            }
+        }
+    }
+    if ($Answers['system']['installation_date']) { return $Answers['system']['installation_date'] }
+    if ($FirstInstall) { return (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) }
+}
+function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profile='standard', $Decisions=@{}, $SuppliedAnswers=$null) {
     $files = Get-KosInventory $Root; $kind = Get-KosDetection $Root $files; $state = Get-KosState $Root
     if ($Operation -eq 'new' -and $kind -notin @('new-target','empty-directory')) { throw 'NEW_REQUIRES_EMPTY: select upgrade or enhance' }
     if ($Operation -in @('upgrade','repair') -and $kind -notin @('managed-kos','legacy-kos')) { throw 'KOS_NOT_DETECTED' }
@@ -372,22 +457,42 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
         }
     }
     if ($state) { $Profile = $state['profile']; $Answers['installation']['providers'] = $state['providers'];$Answers['installation']['include_samples']=[bool]$state['includeSamples'];$Answers['installation']['custom_modules']=@($state['customModules']) }
+    $originalDate = Get-KosInstallationDate $Root $state $files $Answers ($Operation -eq 'new' -or ($Operation -eq 'enhance' -and -not $state))
     $old = if ($state) { $state['components'] } else { @{} }
     $components = @{}; foreach ($key in $old.psbase.Keys) { $components[$key] = $old[$key] }
     $items = New-Object System.Collections.Generic.List[object]
     $plan = @{schemaVersion='1.0.0';operation=$Operation;targetType=$kind;previousVersion=$previousVersion;resultingVersion=$script:KosRelease['starterKitVersion'];edition=$(if($state){Get-KosCanonicalEdition $state['edition']}else{$script:KosRelease['edition']});profile=$Profile;items=$items;links=@($files | Where-Object {$_.kind -eq 'link'} | ForEach-Object {$_.path});decisions=$Decisions;folderMappings=@()}
+    $plan.product = 'KOS Community'
+    if ($originalDate) { $plan.installationDate = $originalDate }
+    $plan.communityVersion = $script:KosRelease.communityVersion
+    $plan.previousCommunityVersion = if ($state) { $state['communityVersion'] } else { $null }
+    $plan.installerVersion = $script:KosRelease.installerVersion
     $plan.inventorySummary=@{files=@($files | Where-Object {$_.kind -eq 'file'}).Count;directories=@($files | Where-Object {$_.kind -eq 'directory'}).Count;links=$plan.links.Count}
     $plan.postActions=@();if($Operation -eq 'new' -and $Answers.installation['initialize_git']){$plan.postActions=@('INITIALIZE_GIT')}
     if($Answers.installation['create_initial_commit']){throw 'INITIAL_COMMIT_REQUIRES_MANUAL_CONTENT_REVIEW'}
     if ($Operation -eq 'enhance') { $plan.folderMappings = @($files | Where-Object {$_.kind -eq 'directory' -and -not $_.path.Contains('/') -and -not $_.path.StartsWith('.')} | ForEach-Object { @{existing=$_.path;recommendation='retain in place; map explicitly in context policy'} }) }
     $catalog = Read-KosJson (Join-Path $PSScriptRoot 'assets.json'); $found = Get-KosEvidence $Root $files
     $historical=(Read-KosJson (Join-Path $PSScriptRoot 'historical-templates.json')).templates
+    $checkAnswers = $null -ne $SuppliedAnswers -and $Operation -in @('upgrade','repair')
+    $suppliedTokens = @{}
+    if ($checkAnswers) {
+        foreach ($section in @('user','system','privacy','rhythm')) {
+            if ($SuppliedAnswers[$section]) {
+                foreach ($key in $SuppliedAnswers[$section].psbase.Keys) { $suppliedTokens[$key] = $true }
+            }
+        }
+        foreach ($key in @('name','short_name','description')) {
+            if ($SuppliedAnswers['system'] -and $SuppliedAnswers['system'].Contains($key)) { $suppliedTokens['system_'+$key] = $true }
+        }
+    }
+    if ($originalDate) { $suppliedTokens['installation_date'] = $true }
     $values = @{}; foreach ($section in @('user','system','privacy','rhythm')) { foreach ($key in $Answers[$section].psbase.Keys) {
         $value = $Answers[$section][$key]
         $values[$key] = if ($value -is [bool]) { $value.ToString().ToLowerInvariant() } elseif ($value -is [array]) { $value -join ', ' } else { [string]$value }
     } }
     $values['system_name']=$Answers['system']['name'];$values['system_short_name']=$Answers['system']['short_name'];$values['system_description']=$Answers['system']['description']
-    $values['starter_kit_version']=$script:KosRelease.starterKitVersion;$values['community_version']=$script:KosRelease.communityVersion;$values['kos_contract_version']=$script:KosRelease.kosContractVersion
+    $values['installation_date'] = [string]$originalDate
+    $values['starter_kit_version']=$script:KosRelease.starterKitVersion;$values['installer_version']=$script:KosRelease.installerVersion;$values['community_version']=$script:KosRelease.communityVersion;$values['kos_contract_version']=$script:KosRelease.kosContractVersion
     $payload=@{}; $installedCaps=New-Object System.Collections.Generic.List[object]
     foreach ($asset in $catalog.assets) {
         if($asset['sample'] -and -not $Answers.installation['include_samples']){continue}
@@ -396,7 +501,7 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
         if ($Profile -eq 'minimal' -and -not $asset['minimal']) { continue }
         $rel=$asset.path; $text=[IO.File]::ReadAllText((Get-KosSafe $script:KosRoot $asset.source),$script:Utf8).Replace("`r`n","`n")
         $renderValues=@{}
-        foreach($match in [regex]::Matches($text,'\{\{([a-z0-9_]+)\}\}')){$key=$match.Groups[1].Value;if($key -notin @('starter_kit_version','community_version','kos_contract_version')){$renderValues[$key]=$values[$key]}}
+        foreach($match in [regex]::Matches($text,'\{\{([a-z0-9_]+)\}\}')){$key=$match.Groups[1].Value;if($key -notin @('starter_kit_version','installer_version','community_version','kos_contract_version')){$renderValues[$key]=$values[$key]}}
         $renderFingerprint=if($renderValues.psbase.Count){Get-KosHash (Get-KosBytes $renderValues)}else{''}
         $text=[regex]::Replace($text,'\{\{([a-z0-9_]+)\}\}',{param($m) if($values.Contains($m.Groups[1].Value)){$values[$m.Groups[1].Value]}else{$m.Value}})
         $historicalHashes=@()
@@ -406,13 +511,44 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
         }}
         if ($text -match '\{\{[a-z0-9_]+\}\}') { throw 'TEMPLATE_UNRESOLVED' }
         $bytes=$script:Utf8.GetBytes($text); $current=$null; $owner=if($old.Contains($rel)){$old[$rel]['ownership']}else{$asset.ownership}
-        $cap=$asset['capability'];$class='MISSING';$action='CREATE'
+        $cap=$asset['capability'];$class='MISSING';$action='CREATE';$history=$false
+        $reason = $null
+        $prior = if ($old.Contains($rel)) { $old[$rel] } else { @{} }
+        $incompleteAnswers = $checkAnswers -and $renderFingerprint -and
+                             @($renderValues.psbase.Keys | Where-Object { -not $suppliedTokens.Contains($_) }).Count -gt 0
+        $unverified = $false
         try {
             $path=Get-KosSafe $Root $rel
             if (Test-Path -LiteralPath $path -PathType Container) { $class='PATH_CONFLICT';$action='BLOCK' }
             else {
                 $current=Get-KosCurrent $Root $rel
-                if ($current -eq (Get-KosHash $bytes)) { $class='IDENTICAL';$action='UNCHANGED' }
+                $verifiedReceipt = $null -ne $current -and $current -eq $prior['installedHash'] -and $renderFingerprint -eq $prior['renderFingerprint']
+                $unknownDate = $renderValues.Contains('installation_date') -and -not $originalDate
+                $unverified = $unknownDate -or ($incompleteAnswers -and -not $verifiedReceipt)
+                $history = $rel -ceq 'CHANGELOG.md' -and ($null -ne $previousVersion -or ($Operation -eq 'enhance' -and $null -ne $current))
+                if ($history) {
+                    $owner = 'user-owned'
+                    $entry = Get-KosUpgradeChangelog $path $current $state $previousVersion $old[$rel]
+                    $class = $entry.classification; $action = $entry.action; $bytes = $entry.bytes
+                }
+                elseif ($unverified) {
+                    $reason = 'Personalization could not be verified. Supply the original questionnaire answers to regenerate this file.'
+                    $bytes = [byte[]]@(); $action = 'SKIP'
+                    if ($null -ne $current) {
+                        $raw = [IO.File]::ReadAllBytes($path)
+                        $bytes = $raw; $class = 'USER_MODIFIED'; $action = 'PRESERVE'
+                        if ($rel -in @('README.md','ARCHITECTURE.md')) {
+                            $owner = 'user-owned'
+                            $bytes = Get-KosCommunityDocumentUpdate $rel $raw $script:KosRelease
+                        }
+                        if ($current -ne (Get-KosHash $bytes)) {
+                            $action = 'PROPOSE'; $reason = 'Updated recognized release information and setup instructions in the existing document.'
+                        } elseif ($current -in @($prior['installedHash'], $prior['proposalHash'])) {
+                            $class = 'IDENTICAL'; $action = 'UNCHANGED'
+                        }
+                    }
+                }
+                elseif ($current -eq (Get-KosHash $bytes)) { $class='IDENTICAL';$action='UNCHANGED' }
                 elseif($current -in (Get-KosTextHashes $text)){$class='COMPATIBLE_EXISTING';$action='UNCHANGED'}
                 elseif ($null -ne $current) {
                     if ($asset['merge'] -eq 'existing-priority') {
@@ -433,11 +569,11 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
                     }
                     else {$class='USER_MODIFIED';$action='PROPOSE';if(-not $old.Contains($rel)){$owner='user-owned'}}
                 }
-                if ($cap -and $null -eq $current -and $found.Contains($cap)) {
+                if ($cap -and $null -eq $current -and -not $unverified -and $found.Contains($cap)) {
                     $equivalent=@($found[$cap] | Where-Object {$rel -notin $_.paths})
                     if($equivalent.Count){$class='SEMANTIC_DUPLICATE';$action='BLOCK';if($Decisions[$rel] -eq 'adopt' -and @($equivalent | Where-Object {-not $_.valid}).Count -eq 0){$action='ADOPT'}}
                 }
-                if ($asset['registry'] -and $null -eq $current) {
+                if ($asset['registry'] -and $null -eq $current -and -not $unverified) {
                     foreach ($file in $files) {
                         if ($file.kind -eq 'file' -and $file.path -ne $rel -and $file.path -match '(skill.json|registry.yaml|skills.json|power-ups.json)$') {
                             if (($asset['registry'] -eq 'skill' -and $file.path -match 'skill') -or ($asset['registry'] -eq 'powerup' -and $file.path -match 'power')) {$class='SEMANTIC_DUPLICATE';$action='BLOCK'}
@@ -448,19 +584,25 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
         } catch {$class='SECURITY_CONFLICT';$action='BLOCK'}
         $choice=$Decisions[$rel]
         if ($choice -in @('keep','skip') -and $class -notin @('SECURITY_CONFLICT','RESERVED_PATH_CONFLICT')) {$action=if($choice -eq 'keep'){'PRESERVE'}else{'SKIP'}}
-        elseif ($choice -eq 'replace' -and $class -eq 'USER_MODIFIED' -and $owner -in @('managed','managed-customizable')) {$action='UPDATE_APPROVED'}
-        elseif ($choice -eq 'propose' -and $class -eq 'USER_MODIFIED') {$action='PROPOSE'}
+        elseif ($choice -eq 'replace' -and -not $unverified -and $class -eq 'USER_MODIFIED' -and $owner -in @('managed','managed-customizable')) {$action='UPDATE_APPROVED'}
+        elseif ($choice -eq 'propose' -and $class -eq 'USER_MODIFIED' -and -not $history -and -not $unverified) {$action='PROPOSE'}
         elseif ($choice -and $choice -notin @('keep','skip','replace','propose','adopt')) {throw 'DECISION_INVALID'}
         $hash=Get-KosHash $bytes
         if ($action -eq 'PROPOSE' -and $old.Contains($rel) -and $old[$rel]['proposalHash'] -eq $hash) {$action='PRESERVE'}
-        $items.Add(@{path=$rel;classification=$class;action=$action;currentHash=$current;desiredHash=$hash;ownership=$owner;componentId=$asset.componentId});$payload[$rel]=$bytes
+        $item = @{path=$rel;classification=$class;action=$action;currentHash=$current;desiredHash=$hash;ownership=$owner;componentId=$asset.componentId}
+        if ($reason) { $item.reason = $reason }
+        $items.Add($item);$payload[$rel]=$bytes
         if ($action -in @('CREATE','UPDATE_SAFE','UPDATE_APPROVED','MERGE','UNCHANGED')) {
             $record=@{path=$rel;componentId=$asset.componentId;ownership=$owner;sourceVersion=$script:KosRelease.starterKitVersion;installedHash=$hash;lastInstallerAction=$action}
             if($action -eq 'UNCHANGED'){$record.installedHash=$current}
             if($renderFingerprint){$record.renderFingerprint=$renderFingerprint}
+            if ($unverified -or $history) {
+                if ($prior['renderFingerprint']) { $record.renderFingerprint = $prior['renderFingerprint'] }
+                else { $record.Remove('renderFingerprint') }
+            }
             if($old.Contains($rel) -and $action -eq 'UNCHANGED' -and $old[$rel].installedHash -eq $current){$record=$old[$rel]};$components[$rel]=$record
             if($cap){$installedCaps.Add(@{id=$cap;version=$(if($asset['provider']){$script:KosRelease.adapterVersion}else{$script:KosRelease.kosContractVersion});paths=@($rel)})}
-        } elseif ($action -eq 'PROPOSE') {
+        } elseif ($action -eq 'PROPOSE' -and ($null -ne $current -or $old.Contains($rel))) {
             $record=if($old.Contains($rel)){$old[$rel].Clone()}else{@{path=$rel;componentId=$asset.componentId;ownership='user-owned';sourceVersion='unknown';installedHash=$current;lastInstallerAction='PRESERVE'}}
             $record['proposalHash']=$hash;$components[$rel]=$record
         } elseif ($action -eq 'ADOPT') {foreach($e in $found[$cap]){$installedCaps.Add(@{id=$cap;version=$script:KosRelease.kosContractVersion;paths=$e.paths})}}
@@ -471,9 +613,12 @@ function New-KosPlan([string]$Root, [string]$Operation, $Answers, [string]$Profi
     foreach($cap in $installedCaps){if(-not $merged.Contains($cap.id)){$merged[$cap.id]=$cap}}
     $caps.capabilities=@($merged.psbase.Values | Sort-Object {$_.id});Add-KosMetadata $Root $plan $payload $script:KosCaps (Get-KosBytes $caps)
     $next=if($state){$state.Clone()}else{@{schemaVersion='1.0.0';edition=$script:KosRelease['edition'];origin=$Operation}}
+    if ($originalDate) { $next.installationDate = $originalDate }
     $privacy = if ($next.Contains('privacy')) { $next['privacy'].Clone() } else { @{} }
     $folders = New-Object 'System.Collections.Generic.List[string]'
-    foreach ($folder in (@($privacy['restricted_folders']) + @($Answers['privacy']['restricted_folders']))) {
+    $chosenPrivacy = if ($checkAnswers) { $SuppliedAnswers['privacy'] } else { $Answers['privacy'] }
+    $chosenFolders = if ($chosenPrivacy) { $chosenPrivacy['restricted_folders'] } else { @() }
+    foreach ($folder in (@($privacy['restricted_folders']) + @($chosenFolders))) {
         if ($null -ne $folder -and -not $folders.Contains($folder)) { $folders.Add($folder) }
     }
     $privacy['restricted_folders'] = $folders.ToArray()
@@ -557,8 +702,28 @@ function Write-KosTransaction($Tx,[string]$Relative,$Bytes,$Expected,[string]$Ow
 }
 function Get-KosReport($Plan,[string]$Status='PLANNED',[string]$Run='') {
     if($Plan['recovery'] -eq 'incomplete' -and $Status -in @('COMPLETE','complete','UNCHANGED')){$Status='INCOMPLETE'}
-    $lines=@('# KOS operation report','','Status: '+$Status,'Operation: '+$Plan.operation,'Target type: '+$Plan.targetType,'Previous Starter Kit: '+$Plan['previousVersion'],'Resulting Starter Kit: '+$Plan['resultingVersion'],'Edition: '+$Plan['edition'],'')
-    foreach($item in $Plan.items){$lines+=('- `'+$item.path+'`: '+$item.classification+' / '+$item.action)}
+    $lines = @('# KOS Community operation report', '', "Status: $Status", "Operation: $($Plan.operation)", "Target type: $($Plan.targetType)")
+    if ($Plan['communityVersion']) { $lines += "KOS Community: $($Plan.communityVersion)" }
+    elseif ($Plan.Contains('communityVersion')) { $lines += 'KOS Community: not recorded' }
+    if ($Plan['previousCommunityVersion']) { $lines += "Previous KOS Community: $($Plan.previousCommunityVersion)" }
+    elseif ($Plan.Contains('previousCommunityVersion') -and $Plan['previousVersion']) { $lines += 'Previous KOS Community: not recorded' }
+    if ($Plan['installerVersion']) { $lines += "Installer version: $($Plan.installerVersion)" }
+    if ($Plan['previousVersion']) {
+        $label = if ($Plan.targetType -eq 'legacy-kos') { 'Previous legacy installer version' } else { 'Previous distribution version' }
+        $lines += "$($label): $($Plan.previousVersion)"
+    }
+    if ($Plan['resultingVersion']) { $lines += "Resulting distribution version: $($Plan.resultingVersion)" }
+    if ($Plan['edition']) { $lines += "Edition: $($Plan.edition)" }
+    $lines += ''
+    if ($Plan.Contains('findings')) {
+        $lines += "Validation findings: $(@($Plan.findings).Count)"
+        foreach ($finding in $Plan.findings) { $lines += "$($finding.severity) $($finding.rule): $($finding.path)" }
+    }
+    foreach ($item in $Plan.items) {
+        $summary = '- `' + $item.path + '`: ' + $item.classification + ' / ' + $item.action
+        if ($item['reason']) { $summary += '. ' + $item.reason }
+        $lines += $summary
+    }
     if($Plan['recovery']){$lines+=('Recovery: '+$Plan.recovery)}
     foreach($item in $Plan['links']){$lines+=('- Preserved link (not traversed): `'+$item+'`')}
     if($Plan['linkAudit']){
@@ -568,6 +733,7 @@ function Get-KosReport($Plan,[string]$Status='PLANNED',[string]$Run='') {
         foreach($item in $audit.regressions){$lines+=('- Link resolution regression: `'+$item.source+'` -> `'+$item.target+'`')}
     }
     if($Run){$lines+=('Backup: '+$script:KosRuns+'/'+$Run+'/backup');$lines+=('Rollback: -Operation rollback -RunId '+$Run)}
+    if ($Plan['requiredAction']) { $lines += $Plan.requiredAction }
     $lines+='User action: review preserved files, proposals and BLOCK items. Diagnostics omit file contents.'
     return ($lines -join "`n")+"`n"
 }

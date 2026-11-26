@@ -1,5 +1,22 @@
 # Changelog
 
+Starting with 1.3.1, the Community product, installer and distribution use one release number. Earlier bracketed headings identify distribution versions. Distribution `1.3.0` shipped KOS Community `1.1.0`.
+
+## KOS Community 1.3.1 (unreleased)
+
+Distribution tag `v1.3.1`. KOS Core contract `1.0.0`.
+
+- Download `kos-community-v1.3.1.zip` for this release. Older vaults with separate Community and installer versions keep their upgrade history. Historical downloads keep their original filenames.
+- Installation and upgrade reports identify the Community version first. The installation record retains separate fields for reading older vaults.
+- Upgrades preserve existing changelog history and offer a separate upgrade entry for review.
+- Fresh installations use the computer’s local setup date unless the owner supplies a date. Upgrades and repairs preserve a known original installation date. The upgrade changelog entry uses the local day of the upgrade.
+- Legacy Power-Up discovery checks the recorded Core contract or the explicit Core contract in vault architecture. If neither identifies the contract, discovery reports that compatibility could not be checked.
+- The Power-Up guides distinguish the v1 package format from the current installer. The upgrade guide identifies the distribution field used by managed vaults and the installer field used by legacy vaults.
+- When original setup answers are unavailable, the installer can propose recognized version changes while preserving the vault’s identity and custom text. Validation reports identify each modified file and the severity of the finding.
+- Downgrade checks cover each previously recorded version. Package compatibility uses the target vault’s Core contract.
+- Guided setup checks the agent and answers file before launch and blocks automatic resume. Rollback checks approval, the run ID and export paths before changing the vault. Both installers can export validation findings and final rollback status as JSON and Markdown.
+- The manifest utility now inventories the files in the customer ZIP. Setup flags that could never change scripts, placeholder files or external integrations are checked explicitly. Legacy Power-Up guides and commands now point authors to the installable package format, and retired registration returns exit code 2 on both shells.
+
 ## [1.3.0] — KOS Community 1.1.0
 
 - Upgrade and repair now stop before writing when a legacy vault has no recorded installer version. Both installer implementations preserve the vault for manual review. The revised setup guide explains the optional editor, the original-version check and how to rehearse upgrades on a copy.

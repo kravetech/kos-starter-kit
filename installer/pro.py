@@ -26,5 +26,5 @@ def pro_plan(root, package=None, receipt=None):
         "edition": canonical_edition(state.get("edition", "community")) if state else "community",
         "blocked": True,
         "items": [{"path": "KOS Pro", "classification": "BLOCKED", "action": "BLOCK", "rule": reason}],
-        "requiredAction": "KOS Pro is a separately licensed commercial edition and is not included in the KOS Starter Kit; no files changed.",
+        "requiredAction": "This installer manages KOS Community. For legacy KOS Pro, use its separately licensed distribution.",
     }

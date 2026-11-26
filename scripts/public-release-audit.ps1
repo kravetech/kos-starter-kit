@@ -1,12 +1,13 @@
 [CmdletBinding()]
 param(
-    [string]$Root = (Split-Path -Parent $PSScriptRoot),
+    [string]$Root,
     [string]$Report
 )
 
 $ErrorActionPreference = "Stop"
 
 try {
+    if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
     $scanRoot = [System.IO.Path]::GetFullPath($Root)
     if (-not $Report) { $Report = Join-Path $scanRoot "reports\RELEASE-AUDIT.md" }
     & git -C $scanRoot rev-parse --git-dir *> $null

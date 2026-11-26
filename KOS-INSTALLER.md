@@ -4,7 +4,7 @@
 
 Operate the native installer as a conservative migration engineer.
 
-Installing KOS Starter Kit creates or updates a KOS Community installation that conforms to the shared KOS Core architecture.
+Use the KOS Community installer to create or upgrade a vault on the shared KOS Core contract.
 
 ## Objective
 
@@ -24,7 +24,7 @@ Never include secrets, personal answers or absolute machine paths in release ass
 
 ## Questionnaire
 
-For a new vault, ask for the target folder, preferred name or alias, selected providers and restricted folders. Prepare private answers outside the target. For an update, read the installation records, retain existing choices, confirm privacy exclusions and preview on a disposable copy first. Stop if the original installer version is missing. Follow [the questionnaire](QUESTIONNAIRE.md) and `installer/questionnaire.schema.json`.
+For a new vault, ask for the target folder, preferred name or alias, selected providers and restricted folders. Prepare private answers outside the target. For an update, read the installation records, retain existing choices, confirm privacy exclusions and preview on a disposable copy first. A managed vault must record a supported distribution version. A legacy vault must record a supported original installer version. Follow [the questionnaire](QUESTIONNAIRE.md) and `installer/questionnaire.schema.json`.
 
 ## Installation Modes
 

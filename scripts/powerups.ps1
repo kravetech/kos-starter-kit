@@ -8,7 +8,10 @@ param(
     [string]$Id
 )
 $ErrorActionPreference = "Stop"
-if ($Command -eq "register") { Write-Error "Legacy registration is read-only in v1.2. Use install.ps1 -PackageCommand install after reviewing an immutable package."; exit 2 }
+if ($Command -eq "register") {
+    [Console]::Error.WriteLine("ERROR: Legacy Power-Up discovery is read-only. Use install.ps1 -PackageCommand install after reviewing an immutable package.")
+    exit 2
+}
 . (Join-Path (Split-Path -Parent $PSScriptRoot) "installer\powerups.ps1")
 
 function Resolve-PowerUpsHomeDirectory {
@@ -26,22 +29,43 @@ function Resolve-PowerUpsHomeDirectory {
     return $homeDir
 }
 
-function Get-KosInstanceVersion {
+function Get-KosCoreContractVersion {
     param([string]$Root)
-    # Power-Up compatibility targets the KOS Core contract recorded at installation.
-    $statePath = Join-Path $Root "00 - System\Installation\kos-installation.json"
+    . (Join-Path (Split-Path -Parent $PSScriptRoot) 'installer/engine.ps1')
+    $statePath = Get-KosSafe $Root $script:KosState
     if (Test-Path -LiteralPath $statePath -PathType Leaf) {
         try {
-            $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
-            $contract = [string]$state.kosContractVersion
-            if ($contract -match '^[0-9]+\.[0-9]+\.[0-9]+$') { return $contract }
+            $state = Read-KosJson $statePath
+            if ($state -is [Collections.IDictionary] -and $state.psbase.Keys -ccontains 'kosContractVersion') {
+                $contract = $state['kosContractVersion']
+                if ($contract -is [string] -and $contract -cmatch '\A[0-9]+\.[0-9]+\.[0-9]+\z') { return $contract }
+            }
         } catch { }
     }
-    # Legacy installations without state: fall back to the architecture version.
-    $path = Join-Path $Root "ARCHITECTURE.md"
+    $path = Get-KosSafe $Root 'ARCHITECTURE.md'
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $null }
-    $match = [regex]::Match((Get-Content -LiteralPath $path -Raw), '(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$')
-    if ($match.Success) { return $match.Groups[1].Value }
+    $reader = $null
+    try {
+        $reader = [IO.StreamReader]::new($path, [Text.UTF8Encoding]::new($false, $true), $false)
+        $first = $reader.ReadLine()
+        if ($null -eq $first -or $first.TrimStart([char]0xfeff).TrimEnd() -cne '---') { return $null }
+        $contract = $null
+        $seen = $false
+        while ($null -ne ($line = $reader.ReadLine())) {
+            $line = $line.TrimEnd()
+            if ($line -in @('---', '...')) { return $contract }
+            $field = [regex]::Match($line, '^(?:kos_contract_version|"kos_contract_version"|''kos_contract_version'')[ \t]*:(.*)$')
+            if ($field.Success) {
+                if ($seen) { return $null }
+                $seen = $true
+                $scalar = [regex]::Match($field.Groups[1].Value, '^[ \t]+(["'']?)([0-9]+\.[0-9]+\.[0-9]+)\1(?:[ \t]+#.*)?$')
+                if ($scalar.Success) { $contract = $scalar.Groups[2].Value }
+            }
+        }
+    } catch [Text.DecoderFallbackException] { return $null }
+    catch [IO.IOException] { return $null }
+    catch [UnauthorizedAccessException] { return $null }
+    finally { if ($reader) { $reader.Dispose() } }
     return $null
 }
 
@@ -61,7 +85,6 @@ try {
     if ($null -ne $existingEntries) {
         foreach ($e in $existingEntries) { if ($e -is [System.Collections.IDictionary]) { $registeredIds += [string]$e["id"] } }
     }
-    $kosVersion = Get-KosInstanceVersion -Root $root
     $powerUpsHome = Resolve-PowerUpsHomeDirectory -Settings $settings -Override $HomeDirectory
 
     if ($Command -eq "discover") {
@@ -69,7 +92,8 @@ try {
             Write-Output "WARN no resolvable Power-Ups home directory (pass -HomeDirectory, set the configured environment variable, or set settings.yaml power_ups.home_directory)"
             exit 0
         }
-        $candidates = Find-KosPowerUps -HomeDirectory $powerUpsHome -RegisteredIds $registeredIds -KosVersion $kosVersion
+        $contract = Get-KosCoreContractVersion -Root $root
+        $candidates = Find-KosPowerUps -HomeDirectory $powerUpsHome -RegisteredIds $registeredIds -KosVersion $contract
         if ($candidates.Count -eq 0) {
             Write-Output "No candidate Power-Ups found under $powerUpsHome"
             exit 0
@@ -115,7 +139,8 @@ try {
     if ($Command -eq "register") {
         if (-not $Id) { throw "-Id <power-up-id> is required for register." }
         if (-not $powerUpsHome) { throw "No resolvable Power-Ups home directory; pass -HomeDirectory or configure settings.yaml/environment variable." }
-        $candidates = Find-KosPowerUps -HomeDirectory $powerUpsHome -RegisteredIds $registeredIds -KosVersion $kosVersion
+        $contract = Get-KosCoreContractVersion -Root $root
+        $candidates = Find-KosPowerUps -HomeDirectory $powerUpsHome -RegisteredIds $registeredIds -KosVersion $contract
         $match = $candidates | Where-Object { $_.Id -eq $Id } | Select-Object -First 1
         if (-not $match) { throw "'$Id' was not found under the configured Power-Ups home ($powerUpsHome)." }
         if ($match.Status -eq "ERROR") {

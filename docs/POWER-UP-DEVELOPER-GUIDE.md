@@ -37,13 +37,17 @@ surface as warnings during discovery, not errors.
 
 ## The Manifest
 
-Write `manifest.yaml` against `docs/POWER-UP-MANIFEST-SPECIFICATION.md` and
-`installer/power-up-manifest.schema.json` in the starter kit. Key
-decisions to make explicitly:
+Validate `manifest.yaml` against the packaged schema at
+`installer/power-up-manifest.schema.json`. The source repository includes the
+[legacy YAML specification](POWER-UP-MANIFEST-SPECIFICATION.md) for field descriptions.
 
 - **`id`** — lowercase, hyphenated, and stable for the life of the Power-Up;
   the registry, the workspace folder name, and the KOS environment variable
   convention all key off it.
+- **`kos_compatibility`** — set the minimum and optional maximum KOS Core contract
+  versions your Power-Up supports. When discovery reports an unknown contract,
+  verify `kosContractVersion` in the vault's installation record or the explicit
+  `kos_contract_version` in its architecture front matter before relying on compatibility.
 - **`installation.default_mode`** — almost always `external`. Only declare
   `embedded` support if you have a real reason a user might want the runtime
   inside their vault.
@@ -125,7 +129,7 @@ delete canonical KOS files. See `docs/uninstall.md` in the template.
 
 ## Distribution
 
-The starter kit does not implement a marketplace, license server, or payment
+The Community installer does not implement a marketplace, license server, or payment
 system. It leaves the extension points open: a Power-Up can be a free
 open-source repository, a private company package, installed from a local
 folder, a Git repository, or a packaged release. Publish it however fits —

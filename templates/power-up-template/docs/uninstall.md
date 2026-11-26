@@ -12,4 +12,6 @@
 
 Never delete canonical KOS files as part of uninstall.
 
-`installer/uninstall.ps1` / `installer/uninstall.sh` implement this sequence.
+The legacy `installer/uninstall.ps1` and `installer/uninstall.sh` files are
+placeholders for authors implementing this sequence. For an installed v1
+package, use the [package uninstall procedure](../../../docs/POWER-UP-INSTALLATION-GUIDE.md#uninstall).

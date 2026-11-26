@@ -6,10 +6,9 @@ Owner: {{preferred_name}}
 Timezone: {{timezone}}  
 Installed: {{installation_date}}
 
-## KOS Distribution
+## KOS Community `{{community_version}}`
 
-- Edition: KOS Community `{{community_version}}`
-- Bootstrap distribution: KOS Starter Kit `{{starter_kit_version}}`
+- Installer version: `{{installer_version}}`
 - Architecture: KOS Core contract `{{kos_contract_version}}`
 
 KOS Community is open source and remains independently useful without KOS Pro.

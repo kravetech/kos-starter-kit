@@ -37,8 +37,8 @@ Use `-PackageCommand disable -Id <id>` or
 ## Upgrade
 
 Use `-PackageCommand update -Package <new-package>` or its Bash equivalent.
-The v1.2 engine keeps the prior immutable version for reviewed rollback and
-preserves user configuration. See [the package lifecycle](PACKAGES-V1.md).
+The KOS Community installer retains the previous package version for rollback
+and preserves user configuration. See [the package lifecycle](PACKAGES-V1.md).
 
 ## Inspect installed packages
 
@@ -53,7 +53,7 @@ removed; configuration, state, reports, and generated user data remain.
 ## Enabling Power-Up Support Later
 
 If an existing KOS instance has no Power-Ups integration structure, dry-run an
-upgrade with the v1.2 installer and review the missing assets:
+upgrade with the current KOS Community installer and review the proposed additions.
 
 ```powershell
 ./install.ps1 -Target "<path-to-your-kos>" -Operation upgrade -DryRun
@@ -77,4 +77,4 @@ Use these commands only when inspecting an older `manifest.yaml` layout. Point `
 ./scripts/powerups.sh status "<path-to-your-kos>"
 ```
 
-Discovery checks manifests and reports findings. Status inspects registered entries and reports missing files. Both operations are read-only. To install a reviewed legacy package, migrate its manifest and payload to the v1 format. [Package format](PACKAGES-V1.md)
+Discovery checks manifests and reports findings. Status inspects registered entries and reports missing files. Both operations are read-only. The retired `register` command exits with status 2. To install a reviewed legacy package, convert its manifest and payload to the v1 format, then use the package installer. [Package format](PACKAGES-V1.md)

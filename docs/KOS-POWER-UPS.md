@@ -1,6 +1,6 @@
 # KOS Power-Ups
 
-A Power-Up adds an optional, independently versioned workflow to a Community vault. The Starter Kit includes the free Project Action List as two installable v1 packages. The owner chooses when to install the Power-Up and its shared Skill and which projects may use them.
+A Power-Up adds an optional, independently versioned workflow to a Community vault. The Community installer includes the free Project Action List as two installable v1 packages. The owner chooses when to install the Power-Up and its shared Skill and which projects may use them.
 
 ## Try the bundled workflow
 

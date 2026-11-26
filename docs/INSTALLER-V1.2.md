@@ -1,6 +1,6 @@
 # KOS Community installation, upgrade and recovery
 
-This guide covers Community 1.1.0, distributed with Starter Kit and installer 1.3.0 on the Core 1.0.0 contract. The guide retains its historical filename for existing links. Check `installer/release.json` in your extracted kit for the exact versions. New installations use `edition: community`.
+This guide covers KOS Community 1.3.1 and KOS Core contract 1.0.0. The installer and distribution use the Community release number. The guide retains its historical filename for existing links. Check `installer/release.json` in your extracted kit for the exact versions. New installations use `edition: community`.
 
 ## Commands and approvals
 
@@ -13,8 +13,9 @@ it does not identify KOS Core as an edition.
 
 Start with `-DryRun` / `--dry-run`. Plans are JSON on stdout. Add
 `-PlanOutput <file>` / `--plan-output <file>` and `-Report <file>` / `--report
-<file>` to export to a new destination outside the target. Neither dry-run nor
-validation creates files in the vault. Output destinations are never overwritten.
+<file>` to export JSON and Markdown together. Use a different new path outside the
+vault for each file. Validation supports the same two exports on both hosts.
+Dry-runs and validation leave vault contents unchanged.
 Apply the reviewed operation with `-Approve` / `--approve`.
 An existing-vault upgrade, enhancement, or repair always requires this explicit
 approval (or confirmation in the interactive review). An answer file and the
@@ -39,7 +40,11 @@ rejected. Interrupted runs require journal review and rollback before replanning
 
 Existing legacy Pro vaults use their edition-specific maintenance tools. Commercial workflow packages for the current Community host follow the [package lifecycle](PACKAGES-V1.md).
 
-A legacy installation must have a recorded, supported installer version. If upgrade or repair reports `LEGACY_VERSION_UNKNOWN`, stop and locate the original installation record or a verified backup. Leave the vault intact during manual review. Rehearse supported upgrades on a disposable copy before approving a separate plan for the original.
+A managed vault qualifies for upgrade or repair when its recorded distribution version (`starterKitVersion`) appears in `supportedUpgradeVersions`. Its installer, Community and Core versions have separate downgrade checks. The `version` property in a generated vault’s architecture front matter also identifies the distribution. Use `community_version` for the product and `kos_contract_version` for compatibility.
+
+For legacy vaults, the supported list applies to `installer_version` in `installer-state.json`. A legacy installer version alone cannot establish which Community version was installed. If upgrade or repair reports `LEGACY_VERSION_UNKNOWN`, recover the original record from a verified backup. Rehearse a supported upgrade on a disposable copy before approving a separate plan for the original.
+
+For compatibility, a plan's JSON field `previousVersion` holds the value read from the supported-version check. For `targetType: managed-kos` it identifies the distribution, and for `targetType: legacy-kos` it identifies the recorded legacy installer. The Markdown report labels each value accordingly.
 
 Enhancement profiles are `minimal` and `complete` (`-Mode` / `--mode`). Minimal
 creates System, Inbox, Templates, Archive and shared routing without every domain.
@@ -48,10 +53,12 @@ content in place. Nothing moves notes. Existing profile and provider choices win
 on upgrades. Unknown configuration keys survive object merges; arrays, including
 empty arrays, are whole user choices. Type conflicts block changes.
 
-Legacy installer state supplies version evidence, not overwrite authority. Exact
-current-template matches can be adopted; all uncertain legacy assets remain
-user-owned. The release includes provenance-tagged public 1.1.0 managed-template snapshots; exact rendered hashes (including known legacy UTF-8/BOM and line-ending variants) prove ownership. No unsupported 1.0.0 historical provenance is invented. Modified files are preserved and receive
-proposals. No downgrade is supported.
+Legacy installer state identifies the previous installer version. The installer
+can adopt exact current-template matches. It also recognizes managed templates
+from legacy installer 1.1.0 by comparing rendered hashes, including known
+encoding and line-ending variants, with snapshots tied to a recorded source
+revision in `installer/historical-templates.json`. Files whose ownership cannot
+be verified stay under owner control. Modified files are preserved for review.
 
 ## Plans and conflicts
 
@@ -73,7 +80,7 @@ only to previously tracked managed or managed-customizable files. User knowledge
 cannot be replaced through this interface. Python and PowerShell also offer
 item review in their interactive menus. Guided
 text merging and side-by-side activation of conflicting capability IDs are not
-implemented. Edit a proposal manually and revalidate.
+implemented. Review the proposals in the upgrade run, merge the changes you accept, and validate the vault again. A real version upgrade proposes a separate changelog entry and preserves the recorded history. After an owner edits a file, validation can report an ASSET_MODIFIED warning because its contents now differ from the recorded installation hash.
 
 The example answer file contains the supported conservative conflict policy.
 Unsupported policies are rejected. There is no global overwrite setting.
@@ -102,8 +109,14 @@ answer is rejected because it never controlled a complete backup operation.
 Rollback uses `-Operation rollback -RunId <id> -Approve` or the equivalent Python
 options. It restores only this run's changes when current output still matches.
 Post-install edits and newly created user-owned configuration/knowledge remain.
-Incomplete recovery returns **4** and preserves metadata instead of pretending
-the vault is fully restored. Empty directory skeletons and run evidence remain.
+Use the same JSON and Markdown export options to record the final rollback
+status. The installer checks approval and export destinations before changing
+the vault. Incomplete recovery returns **4** and preserves its metadata.
+Empty directory skeletons and run evidence remain.
+If the run ID has no matching run folder, rollback returns **2**
+(`ROLLBACK_RUN_NOT_FOUND`). Check the ID under `00 - System/Installation/Runs/`
+and retry with the same new export paths. If the run folder exists but its
+journal is missing or unreadable, inspect the run evidence before retrying.
 Uninstall similarly retains configuration, state, reports and generated data.
 
 For a crash leaving `operation.lock`, stop the original writer, inspect the named

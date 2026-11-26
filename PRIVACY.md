@@ -23,7 +23,7 @@ External sources start unconfigured and read-only. Inventories are generated sta
 
 ## Reference Boundary
 
-The starter kit does not copy private reference-system notes, identity content, memory, handoff state, companies, clients, employees, contacts, finance, health, credentials, projects, daily notes, reports, inventories, Git history, machine names, or reusable absolute paths.
+The KOS Community installer builds vaults from bundled templates and your setup answers. Private reference-system notes, identity content, memory, handoff state, companies, clients, employees, contacts, finance, health, credentials, projects, daily notes, reports, inventories, Git history, machine names, and reusable absolute paths are excluded.
 
 The exact public product name `Kraven Knowledge OS` is classified as public terminology by the privacy scanners. This exception does not permit personal names, private paths, organizations, or any other locally denied term.
 

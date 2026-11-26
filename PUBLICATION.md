@@ -5,6 +5,11 @@ A version is published only after the public PR, required CI, release review, ta
 and GitHub Release are complete.
 
 1. Finish and review all source changes, including pre-existing uncommitted work.
+   While the candidate is local, keep the `(unreleased)` suffix in the top
+   changelog heading. Before freezing the bytes intended for publication,
+   remove the suffix and check that download links and version labels match
+   the intended release. Re-freeze and requalify that exact revision. The
+   packaged changelog ships inside the customer ZIP.
    Run `python scripts/release.py` for allowlist, privacy, asset and version checks.
 2. Run `python scripts/release.py --freeze`. This creates a source candidate under
    `build/candidates/` containing the full source/test allowlist and a SHA-256
@@ -29,9 +34,37 @@ and GitHub Release are complete.
    folder during development; smoke test one extraction of the final archive.
    Push and pull request CI do not create a ZIP. The manual CI archive is a
    disposable verification artifact, not the production ZIP.
-5. Obtain owner review of the exact artifact. Annotate the matching `vX.Y.Z`
-   tag, publish and promote to production only under their respective
-   authorizations.
+5. Obtain owner review of the exact artifact. For an approved publication,
+   create or fetch the annotated Community release tag on the finalized commit.
+   Run `python scripts/release.py --check-tag` on that commit. The check verifies
+   the tag against the release version and HEAD and requires the finalized changelog.
+   Create the release draft against the verified tag, attach the tested customer ZIP
+   and verify its name and SHA-256. Publish only after the release review.
+   Preserve earlier tags and named assets.
+
+## GitHub release draft
+
+Check the repository’s **About** description before publication. Use this
+version-independent wording for the repository:
+
+> KOS Community is a free, open-source Markdown workspace for notes, projects and AI-assisted workflows. Includes cross-platform installers and optional Obsidian support.
+
+For this candidate, use the title **KOS Community 1.3.1**
+and distribution tag `v1.3.1`. The customer asset is
+`kos-community-v1.3.1.zip`. The tag and filename use the Community release number
+in `installer/release.json`. Every release, including an installer-only fix,
+gets a new Community release number. For direct downloads, use the tagged
+release’s exact asset name. Earlier releases retain their original filenames and URLs.
+To print the expected asset name, run `python scripts/release.py --archive-name`.
+
+Open the release body with “KOS Community 1.3.1 uses KOS Core contract 1.0.0.”
+Use the customer-facing bullets in the top
+section of [CHANGELOG.md](CHANGELOG.md) for the changes. Under **Download**,
+name the exact asset, include the verified ZIP’s SHA-256 and direct readers
+to the bundled `INSTALL.md` for new installations and upgrades. Under GitHub
+**Assets**, the named ZIP is the installer and the source archives contain
+the repository. Check the title, body and attached asset again before
+publishing the draft.
 
 For a checkout enrolled in an organization’s private confidentiality review,
 set the checkout-local Git setting `kos.privacyReceipt` to an absolute receipt
@@ -47,11 +80,11 @@ be in both lists to ship; new source files are not implicitly published. Tests,
 CI, release tooling, maintainer documentation, reports, local answers/permissions,
 logs, build/test output, PDFs, HTML and private configuration are excluded from
 the ZIP. Historical reports remain in source history.
-`installer/release.json` is authoritative: Starter Kit 1.3.0,
-Community 1.1.0, contract 1.0.0, schema/adapter 1.0.0 and independently
+`installer/release.json` records KOS Community 1.3.1,
+installer 1.3.1, distribution 1.3.1, contract 1.0.0, schema/adapter 1.0.0 and independently
 versioned extensions. `python scripts/release.py` rejects any version drift.
 
 NOTICE carries existing attribution; LICENSE retains Apache terms. Commercial
-packages and KOS editions do not relicense the Starter Kit or user knowledge. A
+packages and KOS editions do not relicense KOS Community or user knowledge. A
 passing local gate does not replace cross-platform CI or certify unavailable KOS
 Pro activation.

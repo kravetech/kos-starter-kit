@@ -44,6 +44,9 @@
     "installer/archive-files.json",
     "installer/assets.json",
     "installer/cli.py",
+    "installer/community-document-rules.json",
+    "installer/community-documents.ps1",
+    "installer/community_documents.py",
     "installer/contracts.py",
     "installer/core.py",
     "installer/defaults.json",
@@ -179,12 +182,17 @@
     "templates/system/ai-context-manifest.yaml",
     "tests/native-lifecycle.ps1",
     "tests/test_community_skill.py",
+    "tests/test_customer_utilities.py",
+    "tests/test_installation_date.py",
+    "tests/test_installer_cli.py",
     "tests/test_parity.py",
     "tests/test_powerups_compat.py",
     "tests/test_project_context_journeys.py",
     "tests/test_project_lifecycle.py",
     "tests/test_project_sources.py",
     "tests/test_release.py",
-    "tests/test_safety.py"
+    "tests/test_safety.py",
+    "tests/test_upgrade_answers.py",
+    "tests/test_upgrade_changelog.py"
   ]
 }

@@ -6,7 +6,7 @@ shift 2
 case "$command" in
   discover|status) ;;
   register)
-    printf '%s\n' 'ERROR: Legacy registration is read-only in v1.2. Use install.sh --package-command install after reviewing an immutable package.' >&2
+    printf '%s\n' 'ERROR: Legacy Power-Up discovery is read-only. Use install.sh --package-command install after reviewing an immutable package.' >&2
     exit 2
     ;;
   *)

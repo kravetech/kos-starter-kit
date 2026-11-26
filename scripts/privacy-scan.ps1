@@ -1,12 +1,14 @@
 [CmdletBinding()]
 param(
-    [string]$Root = (Split-Path -Parent $PSScriptRoot),
+    [string]$Root,
     [string]$Report,
     [switch]$IncludeGenerated
 )
 $ErrorActionPreference = "Stop"
 try {
-    . (Join-Path (Split-Path -Parent $PSScriptRoot) 'installer/engine.ps1')
+    $kitRoot = Split-Path -Parent $PSScriptRoot
+    if (-not $Root) { $Root = $kitRoot }
+    . (Join-Path $kitRoot 'installer/engine.ps1')
     $scanRoot = [System.IO.Path]::GetFullPath($Root)
     if (-not $Report) { $Report = Join-Path $scanRoot "PRIVACY-SCAN.md" }
     $findings = @()

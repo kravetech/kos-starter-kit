@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import uuid
 from pathlib import Path
 
@@ -9,19 +10,35 @@ from safety import (Blocked, INSTALLATION, RUNS, current_hash, digest, durable,
                     encoded, inventory, json_read, relative, safe)
 
 
-def markdown(plan: dict, status="PLANNED", run=None, findings=None) -> str:
+def markdown(plan: dict, status="PLANNED", run=None) -> str:
+    if plan.get("recovery") == "incomplete" and status in {"COMPLETE", "UNCHANGED"}:
+        status = "INCOMPLETE"
     counts = {}
     for item in plan.get("items", []):
         counts[item["action"]] = counts.get(item["action"], 0) + 1
-    lines = ["# KOS operation report", "", f"Status: {status}",
-             f"Operation: {plan['operation']}", f"Target type: {plan['targetType']}",
-             f"Previous Starter Kit: {plan.get('previousVersion') or 'unknown'}",
-             f"Resulting Starter Kit: {plan.get('resultingVersion') or 'unchanged'}",
-             f"Edition: {plan.get('edition', 'community')}", "",
+    lines = ["# KOS Community operation report", "", f"Status: {status}",
+             f"Operation: {plan['operation']}", f"Target type: {plan['targetType']}"]
+    legacy = plan["targetType"] == "legacy-kos"
+    previous_label = "Previous legacy installer version" if legacy else "Previous distribution version"
+    for key, label in (("communityVersion", "KOS Community"),
+                       ("previousCommunityVersion", "Previous KOS Community"),
+                       ("installerVersion", "Installer version"),
+                       ("previousVersion", previous_label),
+                       ("resultingVersion", "Resulting distribution version"),
+                       ("edition", "Edition")):
+        if plan.get(key):
+            lines.append(f"{label}: {plan[key]}")
+        elif key in plan and (key == "communityVersion" or
+                              key == "previousCommunityVersion" and plan.get("previousVersion")):
+            lines.append(f"{label}: not recorded")
+    lines.extend(["",
              f"Recovery: {plan.get('recovery', 'not requested')}",
-             "Counts: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())), ""]
+             "Counts: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())), ""])
     for item in plan.get("items", []):
-        lines.append(f"- `{item['path']}`: {item['classification']} / {item['action']}")
+        summary = f"- `{item['path']}`: {item['classification']} / {item['action']}"
+        if item.get("reason"):
+            summary += ". " + item["reason"]
+        lines.append(summary)
     for item in plan.get("links", []):
         lines.append(f"- Preserved link (not traversed): `{item}`")
     audit = plan.get("linkAudit")
@@ -34,9 +51,17 @@ def markdown(plan: dict, status="PLANNED", run=None, findings=None) -> str:
         lines.append(f"New basename collisions: {len(audit['newBasenameCollisions'])}; resolution regressions: {len(audit['regressions'])}")
         for item in audit["regressions"]:
             lines.append(f"- Link resolution regression: `{item['source']}` -> `{item['target']}`")
-    lines.extend(["", "Validation: " + (", ".join(findings) if findings else "see status and classified items"),
-                  f"Backup: {RUNS}/{run}/backup" if run else "Backup: none (no changes)",
-                  f"Rollback: --operation rollback --run-id {run}" if run else "Rollback: not needed",
+    if "findings" in plan:
+        lines.append(f"Validation findings: {len(plan['findings'])}")
+        for finding in plan["findings"]:
+            lines.append(f"{finding['severity']} {finding['rule']}: {finding['path']}")
+    if run:
+        lines.extend(["", f"Backup: {RUNS}/{run}/backup", f"Rollback: --operation rollback --run-id {run}"])
+    if status == "FAILED":
+        lines.append("Inspect the operation journal before retrying.")
+    if plan.get("requiredAction"):
+        lines.append(plan["requiredAction"])
+    lines.extend(["",
                   "User action: review preserved files, proposals and any BLOCK items before proceeding.",
                   "Diagnostics contain relative paths and rule identifiers; file contents are omitted."])
     return "\n".join(lines) + "\n"
@@ -139,11 +164,28 @@ class Transaction:
             self.lock.unlink()
 
 
-def rollback(root: Path, run: str, *, approve=False, dry_run=False) -> dict:
+def plan_rollback(root: Path, run: str):
     if not isinstance(run, str) or len(run) != 32 or any(c not in "0123456789abcdef" for c in run):
         raise Blocked("RUN_ID_INVALID")
-    journal_rel = RUNS + "/" + run + "/journal.json"
-    journal = json_read(safe(root, journal_rel))
+    run_rel = RUNS + "/" + run
+    run_dir = safe(root, run_rel)
+    try:
+        mode = run_dir.stat().st_mode
+    except FileNotFoundError as error:
+        raise Blocked("ROLLBACK_RUN_NOT_FOUND") from error
+    if not stat.S_ISDIR(mode):
+        raise Blocked("ROLLBACK_RUN_INVALID")
+    journal_path = safe(root, run_rel + "/journal.json")
+    try:
+        journal = json_read(journal_path)
+    except FileNotFoundError as error:
+        raise Blocked("ROLLBACK_JOURNAL_MISSING") from error
+    except OSError as error:
+        raise Blocked("ROLLBACK_JOURNAL_UNREADABLE") from error
+    except (UnicodeError, ValueError) as error:
+        raise Blocked("ROLLBACK_JOURNAL_INVALID") from error
+    if not isinstance(journal, dict) or not isinstance(journal.get("entries"), list):
+        raise Blocked("ROLLBACK_JOURNAL_INVALID")
     if journal.get("runId") != run:
         raise Blocked("JOURNAL_ID_MISMATCH")
     plan = {"schemaVersion": "1.0.0", "operation": "rollback", "targetType": "managed-kos", "items": []}
@@ -188,14 +230,28 @@ def rollback(root: Path, run: str, *, approve=False, dry_run=False) -> dict:
         for item in plan["items"]:
             if item["path"].endswith(("kos-installation.json", "skills.json", "power-ups.json", "packages.json", "capabilities.json")):
                 item["action"] = "PRESERVE"
-    if dry_run or not approve or not any(i["action"] == "RESTORE" for i in plan["items"]):
-        return plan
+    return plan, payload
+
+
+def apply_rollback(root, plan, payload):
+    restores = [item for item in plan["items"] if item["action"] == "RESTORE"]
+    if not restores:
+        return None
+    for item in restores:
+        if current_hash(root, item["path"]) != item["currentHash"]:
+            raise Blocked("TARGET_CHANGED_SINCE_PLAN")
     lock = safe(root, INSTALLATION + "/operation.lock", write=True)
     if lock.exists():
         raise Blocked("OPERATION_LOCKED: recovery requires explicit unlock after stopping the writer")
     with Transaction(root, plan) as tx:
-        for item in sorted(plan["items"], key=lambda i: i["path"].endswith(("kos-installation.json", "skills.json", "power-ups.json", "packages.json", "capabilities.json"))):
-            if item["action"] == "RESTORE":
-                tx.write(item["path"], payload[item["path"]], item["currentHash"])
+        for item in sorted(restores, key=lambda i: i["path"].endswith(("kos-installation.json", "skills.json", "power-ups.json", "packages.json", "capabilities.json"))):
+            tx.write(item["path"], payload[item["path"]], item["currentHash"])
         tx.journal["recovery"] = plan["recovery"]
+    return tx.run
+
+
+def rollback(root: Path, run: str, *, approve=False, dry_run=False) -> dict:
+    plan, payload = plan_rollback(root, run)
+    if approve and not dry_run:
+        apply_rollback(root, plan, payload)
     return plan

@@ -15,8 +15,7 @@
     "short_name": "KOS",
     "root_folder_name": "Knowledge OS",
     "description": "A portable operating system for durable knowledge and active work.",
-    "motto": "",
-    "installation_date": "2026-09-18"
+    "motto": ""
   },
   "privacy": {
     "default_ai_access": "internal",
@@ -46,10 +45,6 @@
     "initialize_git": false,
     "create_initial_commit": false,
     "include_samples": false,
-    "include_gitkeep": true,
-    "enable_windows_scripts": true,
-    "enable_unix_scripts": true,
-    "configure_external_integrations": false,
     "allow_overwrite": false,
     "custom_modules": [],
     "providers": [

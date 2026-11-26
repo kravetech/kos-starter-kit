@@ -286,19 +286,27 @@
         },
         "include_gitkeep": {
           "type": "boolean",
-          "default": true
+          "const": true,
+          "deprecated": true,
+          "description": "Compatibility value for earlier questionnaires. Omit this field in new answers."
         },
         "enable_windows_scripts": {
           "type": "boolean",
-          "default": true
+          "const": true,
+          "deprecated": true,
+          "description": "Compatibility value for earlier questionnaires. Omit this field in new answers."
         },
         "enable_unix_scripts": {
           "type": "boolean",
-          "default": true
+          "const": true,
+          "deprecated": true,
+          "description": "Compatibility value for earlier questionnaires. Omit this field in new answers."
         },
         "configure_external_integrations": {
           "type": "boolean",
-          "default": false
+          "const": false,
+          "deprecated": true,
+          "description": "Compatibility value for earlier questionnaires. Omit this field in new answers."
         },
         "allow_overwrite": {
           "const": false

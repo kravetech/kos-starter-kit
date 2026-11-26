@@ -9,11 +9,32 @@ $merged=Merge-KosExisting @{added=$true} @{keys='preserve';unknown=@{value=7};ar
 Assert-Condition ((Convert-KosJson (Get-KosJson $merged))['keys'] -eq 'preserve') 'unknown configuration field lost'
 $answers=Read-KosJson (Join-Path $script:KosRoot 'installer/defaults.json')
 $answers.installation.providers=@('codex','claude','gemini')
-$result=New-KosPlan $root 'new' $answers 'minimal'
-$run=Invoke-KosApply $root $result.plan $result.payload
-Assert-Condition ($run.Length -eq 32) 'missing run ID'
-$result=New-KosPlan $root 'upgrade' $answers 'minimal'
-Assert-Condition ($null -eq (Invoke-KosApply $root $result.plan $result.payload)) 'repeat upgrade wrote files'
+& {
+    # Simulate Singapore just after midnight while UTC is still on the previous day.
+    $instant = [DateTimeOffset]::Parse('2030-01-31T17:30:00+00:00')
+    $fixtureNow = $instant.ToOffset([TimeSpan]::FromHours(8)).DateTime
+    function Get-Date { return $fixtureNow }
+    $result = New-KosPlan $root 'new' $answers 'minimal'
+    Assert-Condition ($result.plan.installationDate -eq '2030-02-01') 'new install used an incorrect local date'
+    $fixtureNow = $fixtureNow.AddDays(1)
+    $run = Invoke-KosApply $root $result.plan $result.payload
+    Assert-Condition ($run.Length -eq 32) 'missing run ID'
+    foreach ($operation in @('upgrade', 'repair')) {
+        $result = New-KosPlan $root $operation $answers 'minimal'
+        Assert-Condition ($result.plan.installationDate -eq '2030-02-01') 'repeat changed the original installation date'
+        Assert-Condition ($null -eq (Invoke-KosApply $root $result.plan $result.payload)) 'repeat operation wrote files'
+    }
+    $legacyState = @{communityVersion='1.0.0';installerVersion='1.2.0'}
+    $history = Join-Path $root 'CHANGELOG.md'
+    $entry = Get-KosUpgradeChangelog $history (Get-KosCurrent $root 'CHANGELOG.md') $legacyState '1.2.0' @{}
+    Assert-Condition ($script:Utf8.GetString($entry.bytes).Contains('] - 2030-02-02')) 'upgrade changelog used the wrong day'
+    $receipt = Get-KosState $root
+    $receipt.Remove('installationDate')
+    $inventory = Get-KosInventory $root
+    Assert-Condition ((Get-KosInstallationDate $root $receipt $inventory $answers $false) -eq '2030-02-01') 'original README date was lost'
+    $receipt.components['README.md'].lastInstallerAction = 'UNCHANGED'
+    Assert-Condition ($null -eq (Get-KosInstallationDate $root $receipt $inventory $answers $false)) 'an adopted README incorrectly verified its historical date'
+}
 $findings=Test-KosInstallation $root
 Assert-Condition (@($findings | Where-Object {$_.severity -eq 'error'}).Count -eq 0) ('validation failed: '+(Get-KosJson $findings))
 Write-Fixture $root 'CODEX.md' ($script:Utf8.GetBytes('customized'))

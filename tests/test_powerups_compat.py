@@ -10,6 +10,18 @@ from pathlib import Path
 ROOT = Path(__file__).absolute().parents[1]
 
 
+def bash_shell():
+    # Windows can put its WSL launcher on PATH even when no Linux shell is installed.
+    if os.name == "nt":
+        for install_root in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
+            if install_root:
+                for relative in ("Git/bin/bash.exe", "Git/usr/bin/bash.exe"):
+                    candidate = Path(install_root) / relative
+                    if candidate.is_file():
+                        return str(candidate)
+    return shutil.which("bash")
+
+
 class PowerUpsCompatibilityTests(unittest.TestCase):
     def setUp(self):
         self.base = ROOT / "test-output" / ("powerups-" + uuid.uuid4().hex)
@@ -49,19 +61,56 @@ class PowerUpsCompatibilityTests(unittest.TestCase):
                  for path in self.base.rglob("*") if path.is_file()}
         self.assertEqual(before, after)
 
-    def test_legacy_register_wrapper_is_blocked(self):
-        shell = shutil.which("bash")
-        if not shell and os.name == "nt":
-            for install_root in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
-                if not install_root:
-                    continue
-                for relative in ("Git/bin/bash.exe", "Git/usr/bin/bash.exe"):
-                    candidate = Path(install_root) / relative
-                    if candidate.is_file():
-                        shell = str(candidate)
-                        break
-                if shell:
-                    break
+    def test_legacy_discovery_uses_only_verified_core_contract_versions(self):
+        commands = []
+        shell = bash_shell()
+        if shell:
+            commands.append([shell, (ROOT / "scripts/powerups.sh").as_posix(), "discover",
+                             self.vault.as_posix(), "--home", self.home.as_posix()])
+        for shell in (shutil.which("pwsh"), shutil.which("powershell") if os.name == "nt" else None):
+            if shell:
+                commands.append([shell, "-NoProfile", "-File", str(ROOT / "scripts/powerups.ps1"),
+                                 "discover", "-InstallationRoot", str(self.vault), "-HomeDirectory", str(self.home)])
+        if not commands:
+            self.skipTest("No supported discovery shell available")
+        source = self.home / "kos-example"
+        shutil.copytree(ROOT / "templates/power-up-template/installer", source / "installer")
+        manifest = source / "manifest.yaml"
+        manifest.write_text(manifest.read_text(encoding="utf-8").replace("maximum_version: null", "maximum_version: 1.0.0"), encoding="utf-8")
+        receipt = self.vault / "00 - System/Installation/kos-installation.json"
+        receipt.parent.mkdir()
+        header = "---\nversion: 1.3.1\ncommunity_version: 1.1.1\n"
+        unknown = "Power-Up compatibility was not checked because the installed KOS Core contract version is unknown."
+        too_new = "Installed KOS Core contract 1.2.0 is newer than the Power-Up's maximum 1.0.0."
+        cases = (
+            ('{"kosContractVersion":"1.0.0"}', header + "kos_contract_version: 1.2.0\n---\n", "PASS", ""),
+            (None, header + 'kos_contract_version: "1.0.0" # reviewed\n---\n', "PASS", ""),
+            ('{"kosContractVersion":"invalid"}', header + "kos_contract_version: 1.2.0\n---\n", "ERROR", too_new),
+            (None, header + "nested:\n  kos_contract_version: 1.0.0\n---\nkos_contract_version: 1.0.0\n", "WARNING", unknown),
+            (None, header + "kos_contract_version: 1.0.0\n'kos_contract_version': invalid\n---\n", "WARNING", unknown),
+            (None, header + "kos_contract_version: 1.0.0\n", "WARNING", unknown),
+        )
+        env = dict(os.environ, PYTHON=Path(sys.executable).as_posix(), PYTHONDONTWRITEBYTECODE="1")
+        for record, architecture, status, message in cases:
+            if record is None:
+                receipt.unlink(missing_ok=True)
+            else:
+                receipt.write_text(record, encoding="utf-8")
+            (self.vault / "ARCHITECTURE.md").write_bytes(architecture.replace("\n", "\r\n").encode("utf-8-sig"))
+            before = {path: path.read_bytes() for path in self.base.rglob("*") if path.is_file()}
+            for command in commands:
+                with self.subTest(shell=command[0], architecture=architecture, record=record):
+                    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8",
+                                            errors="replace", timeout=45, env=env)
+                    output = result.stdout + result.stderr
+                    self.assertEqual(2 if status == "ERROR" else 0, result.returncode, output)
+                    self.assertIn("[" + status + "] kos-example", output)
+                    if message:
+                        self.assertIn(message, output)
+            self.assertEqual(before, {path: path.read_bytes() for path in self.base.rglob("*") if path.is_file()})
+
+    def test_bash_discover_and_status(self):
+        shell = bash_shell()
         if not shell:
             self.skipTest("Bash unavailable")
         env = dict(os.environ, PYTHON=Path(sys.executable).as_posix())
@@ -72,12 +121,28 @@ class PowerUpsCompatibilityTests(unittest.TestCase):
                                            capture_output=True, text=True, encoding="utf-8", timeout=30, env=env)
                 self.assertEqual(0, read_only.returncode, read_only.stdout + read_only.stderr)
                 self.assertIn(expected, read_only.stdout)
-        result = subprocess.run([shell, str(ROOT / "scripts/powerups.sh"), "register", str(self.vault),
-                                 "--id", "kos-example"], capture_output=True, text=True,
-                                encoding="utf-8", timeout=30, env=env)
-        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
-        self.assertIn("read-only", result.stderr)
-        self.assertFalse((self.legacy / "manifests/kos-example.yaml").exists())
+
+    def test_legacy_registration_refusal_matches_on_all_shells(self):
+        commands = []
+        shell = bash_shell()
+        if shell:
+            commands.append(([shell, (ROOT / "scripts/powerups.sh").as_posix(), "register", self.vault.as_posix()],
+                             "install.sh --package-command install"))
+        for name in ("pwsh", "powershell"):
+            shell = shutil.which(name)
+            if shell:
+                commands.append(([shell, "-NoProfile", "-File", str(ROOT / "scripts/powerups.ps1"),
+                                  "register", "-InstallationRoot", str(self.vault)], "install.ps1 -PackageCommand install"))
+        if not commands:
+            self.skipTest("No supported shell available")
+        for command, replacement in commands:
+            with self.subTest(shell=command[0]):
+                result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+                self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+                self.assertEqual("", result.stdout)
+                self.assertEqual(f"ERROR: Legacy Power-Up discovery is read-only. Use {replacement} "
+                                 "after reviewing an immutable package.", result.stderr.strip())
+                self.assertFalse((self.legacy / "manifests/kos-example.yaml").exists())
 
 
 if __name__ == "__main__":

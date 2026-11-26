@@ -15,8 +15,7 @@
     "short_name": "TKOS",
     "root_folder_name": "Test Knowledge OS",
     "description": "A portable operating system for durable knowledge and active work.",
-    "motto": "Capture clearly. Execute deliberately.",
-    "installation_date": "2026-07-28"
+    "motto": "Capture clearly. Execute deliberately."
   },
   "intended_use": [
     "business",
@@ -61,10 +60,6 @@
     "initialize_git": false,
     "create_initial_commit": false,
     "include_samples": true,
-    "include_gitkeep": true,
-    "enable_windows_scripts": true,
-    "enable_unix_scripts": true,
-    "configure_external_integrations": false,
     "allow_overwrite": false,
     "providers": [
       "codex",

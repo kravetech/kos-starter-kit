@@ -1,8 +1,8 @@
 # Architecture
 
 <Describe what this Power-Up does, its major components under `runtime/`,
-and how it fits into the standard Power-Up lifecycle: Discover -> Validate ->
-Install -> Register -> Initialize -> Use -> Disable/Upgrade/Repair -> Uninstall.>
+and how its original YAML lifecycle handled discovery, validation, installation,
+registration, initialization, use, maintenance and removal.>
 
 ## Workspace Modes
 

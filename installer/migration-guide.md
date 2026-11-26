@@ -1,6 +1,6 @@
-# Migration from 1.0.0 and 1.1.0
+# Migration from legacy installer versions 1.0.0 and 1.1.0
 
-Use [the v1.2 operation guide](../docs/INSTALLER-V1.2.md) and upgrade dry-run.
+Follow the [Community upgrade and recovery guide](../docs/INSTALLER-V1.2.md) and preview the upgrade.
 Legacy state identifies version, not ownership. Uncertain files remain user-owned;
 exact current-template matches may be adopted. Customized routers and knowledge
 receive proposals, never automatic replacement.

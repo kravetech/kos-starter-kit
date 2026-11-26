@@ -6,7 +6,7 @@ Write a task as `- [ ] Short action` on its own line. The extractor accepts `-`,
 
 ## Try it in a disposable vault
 
-Run the commands from the folder containing the extracted Starter Kit's `installer`, `scripts` and `examples` directories. Use Python 3.10 or newer. On systems with a `python3` command, substitute it for `python`. Keep the extracted kit available when working with an installed vault.
+Run the commands from the folder containing the extracted Community installer's `installer`, `scripts` and `examples` directories. Use Python 3.10 or newer. On systems with a `python3` command, substitute it for `python`. Keep the extracted kit available when working with an installed vault.
 
 ```text
 python installer/install.py --target ../DemoVault --operation new --answers installer/answers.example.json --approve

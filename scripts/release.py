@@ -2,6 +2,7 @@
 """Freeze source, stage and test client payload, then package those exact bytes."""
 import argparse
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
@@ -21,11 +22,95 @@ from safety import Blocked, digest, encoded, json_read, relative, safe
 SOURCE_ONLY = {
     ".github/workflows/ci.yml", "ARCHITECTURE.md", "MANIFEST.md", "PUBLICATION.md",
     "docs/POWER-UP-DEVELOPER-GUIDE.md", "docs/POWER-UP-MANIFEST-SPECIFICATION.md",
-    "installer/archive-files.json", "installer/release-files.json",
+    "installer/release-files.json",
     "installer/migration-guide.md", "installer/validation-checklist.md",
     "scripts/public-release-audit.ps1", "scripts/release.py",
     "scripts/validate-starter-kit.ps1", "scripts/validate-starter-kit.sh",
 }
+
+
+def release_version(release):
+    community = release.get("communityVersion")
+    if not isinstance(community, str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}", community):
+        raise Blocked("RELEASE_COMMUNITY_VERSION_INVALID")
+    if release.get("installerVersion") != community or release.get("starterKitVersion") != community:
+        raise Blocked("RELEASE_VERSION_DRIFT: communityVersion, installerVersion and starterKitVersion must match")
+    return community
+
+
+def customer_archive_name(release):
+    return f"kos-community-v{release_version(release)}.zip"
+
+
+def github_tag_context(expected, env):
+    """An ordinary branch may qualify a candidate. A tag event must identify the exact release."""
+    ref = env.get("GITHUB_REF", "")
+    kind = env.get("GITHUB_REF_TYPE", "")
+    event = env.get("GITHUB_EVENT_NAME", "")
+    if env.get("GITHUB_ACTIONS") == "true" and event in {"push", "workflow_dispatch"} and not ref:
+        raise Blocked("RELEASE_GITHUB_REF_MISSING")
+    tagged = kind == "tag" or ref.startswith("refs/tags/") or event == "release"
+    if tagged and (ref != "refs/tags/" + expected or kind not in ("", "tag")
+                   or env.get("GITHUB_REF_NAME", expected) != expected):
+        raise Blocked("RELEASE_GITHUB_TAG_MISMATCH: expected refs/tags/" + expected)
+    return tagged
+
+
+def verify_release_tag(root, version, event_sha=None):
+    """Bind the working files that can enter the release to the canonical tag's commit."""
+    tag = "refs/tags/v" + version
+    def git(*args, data=None):
+        return subprocess.run(["git", "-C", str(root), *args], input=data, capture_output=True)
+
+    top = git("rev-parse", "--show-toplevel")
+    if top.returncode or Path(os.fsdecode(top.stdout).strip()).resolve() != root.resolve():
+        raise Blocked("RELEASE_TAG_REQUIRES_CHECKOUT")
+    tagged = git("rev-parse", "--verify", tag + "^{commit}")
+    if tagged.returncode:
+        raise Blocked("RELEASE_TAG_MISSING: " + tag)
+    head = git("rev-parse", "--verify", "HEAD^{commit}")
+    if head.returncode or head.stdout != tagged.stdout:
+        raise Blocked("RELEASE_TAG_COMMIT_MISMATCH")
+    if event_sha:
+        if not re.fullmatch(r"(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})", event_sha):
+            raise Blocked("RELEASE_GITHUB_SHA_INVALID")
+        event = git("rev-parse", "--verify", event_sha + "^{commit}")
+        if event.returncode or event.stdout != head.stdout:
+            raise Blocked("RELEASE_GITHUB_COMMIT_MISMATCH")
+
+    files = checked_files(root)
+    entries = git("ls-tree", "-rz", "--full-tree", tagged.stdout.decode("ascii").strip())
+    if entries.returncode:
+        raise Blocked("RELEASE_TAG_TREE_UNAVAILABLE")
+    blobs = {}
+    for row in entries.stdout.split(b"\0"):
+        if row:
+            header, path = row.split(b"\t", 1)
+            mode, kind, oid = header.split()
+            if kind == b"blob" and mode in (b"100644", b"100755"):
+                blobs[os.fsdecode(path)] = oid
+    if "installer/release-files.json" not in files:
+        raise Blocked("RELEASE_SOURCE_LIST_NOT_FROZEN")
+    if any(path not in blobs for path in files):
+        raise Blocked("RELEASE_TAG_SOURCE_MISMATCH")
+    requests = b"".join(blobs[path] + b" " + os.fsencode(path) + b"\n" for path in files)
+    contents = git("cat-file", "--filters", "--batch", data=requests)
+    if contents.returncode:
+        raise Blocked("RELEASE_TAG_TREE_UNAVAILABLE")
+    # Filters reproduce the tagged files' checkout bytes, including .gitattributes line endings.
+    # Batch headers report the unfiltered size, so compare the expected file and its delimiter.
+    tagged_bytes = io.BytesIO(contents.stdout)
+    for path in files:
+        header = tagged_bytes.readline().split()
+        data = safe(root, path).read_bytes()
+        if (len(header) != 3 or header[:2] != [blobs[path], b"blob"]
+                or tagged_bytes.read(len(data)) != data or tagged_bytes.read(1) != b"\n"):
+            raise Blocked("RELEASE_TAG_SOURCE_MISMATCH: " + path)
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8-sig")
+    current = re.search(r"(?m)^## .+$", changelog)
+    if not current or current[0] != "## KOS Community " + version:
+        raise Blocked("RELEASE_CHANGELOG_NOT_FINAL")
+    return candidate_manifest(root, files)["fingerprint"]
 
 
 def archive_entry(rel):
@@ -85,7 +170,7 @@ def checked_archive_files(root, source_files):
     if set(files) & SOURCE_ONLY or any(rel.startswith("tests/") for rel in files):
         raise Blocked("RELEASE_ARCHIVE_INTERNAL_FILE")
     required = {"README.md", "INSTALL.md", "LICENSE", "NOTICE", "install.ps1", "install.sh",
-                "installer/install.py", "installer/engine.ps1", "installer/release.json"}
+                "installer/install.py", "installer/engine.ps1", "installer/release.json", "installer/archive-files.json"}
     if required - set(files):
         raise Blocked("RELEASE_ARCHIVE_REQUIRED_FILE")
     for asset in json_read(root / "installer/assets.json")["assets"]:
@@ -120,7 +205,11 @@ def version_findings(root=ROOT):
     findings = ["installer/release.json " + key + " is missing or not MAJOR.MINOR.PATCH" for key in keys if not semver.match(str(release.get(key, "")))]
     if findings:
         return findings
-    kit, community, contract = release["starterKitVersion"], release["communityVersion"], release["kosContractVersion"]
+    try:
+        community = release_version(release)
+    except Blocked as error:
+        return [str(error)]
+    kit, contract = release["starterKitVersion"], release["kosContractVersion"]
     if release.get("edition") != "community":
         findings.append("installer/release.json edition must be community")
     if kit not in release.get("supportedUpgradeVersions", []):
@@ -134,26 +223,47 @@ def version_findings(root=ROOT):
         match = re.search(r"(?m)^" + field + r":\s*(\S+)\s*$", architecture)
         if not match or match[1] != expected:
             findings.append("ARCHITECTURE.md front matter " + field + " != " + expected)
-    for label, expected in (("Version", "v" + kit), ("Community version", community), ("KOS Core contract", contract)):
+    installer = release["installerVersion"]
+    for label, expected in (("Community version", community), ("Installer version", installer), ("Distribution version", "v" + kit), ("KOS Core contract", contract)):
         if "| " + label + " | `" + expected + "` |" not in architecture:
             findings.append("ARCHITECTURE.md table row '" + label + "' != " + expected)
-    heading = re.search(r"(?m)^## \[([^\]]+)\]", (root / "CHANGELOG.md").read_text(encoding="utf-8-sig"))
-    if not heading or heading[1] != kit:
-        findings.append("CHANGELOG.md latest release heading != " + kit)
+    tag = "v" + community
+    asset = customer_archive_name(release)
+    readme_intro = (root / "README.md").read_text(encoding="utf-8-sig").split("\n## ", 1)[0]
+    for label in (f"KOS Community {community}", f"KOS Core contract {contract}",
+                  f"`{tag}`", f"`{asset}`"):
+        if not re.search(re.escape(label) + r"(?![0-9]|\.[0-9])", readme_intro):
+            findings.append("README.md release identity is missing " + label)
+    install_intro = (root / "INSTALL.md").read_text(encoding="utf-8-sig").split("\n## ", 1)[0]
+    if f"`{asset}`" not in install_intro:
+        findings.append("INSTALL.md must name the current customer archive " + asset)
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8-sig")
+    heading = re.search(r"(?m)^## .+$", changelog)
+    expected = f"## KOS Community {community}"
+    if not heading or heading[0] not in (expected, expected + " (unreleased)"):
+        findings.append("CHANGELOG.md latest heading must identify " + expected[3:])
+    else:
+        current_section = changelog[heading.end():].split("\n## ", 1)[0]
+        if f"Distribution tag `{tag}`" not in current_section:
+            findings.append("CHANGELOG.md current release must identify distribution tag " + tag)
+        if f"`{asset}`" not in current_section:
+            findings.append("CHANGELOG.md current release must name the customer archive " + asset)
     publication_file = root / "PUBLICATION.md"
     if publication_file.is_file():
         publication = publication_file.read_text(encoding="utf-8-sig")
-        for phrase in ("Starter Kit " + kit, "Community " + community, "contract " + contract):
+        for phrase in (f"**KOS Community {community}**", f"distribution tag `{tag}`", f"`{asset}`",
+                       "installer " + installer, "distribution " + kit, "contract " + contract,
+                       "python scripts/release.py --check-tag"):
             if phrase not in publication:
                 findings.append("PUBLICATION.md does not state '" + phrase + "'")
     for rel in ("templates/root/README.md", "templates/root/ARCHITECTURE.md"):
         text = (root / rel).read_text(encoding="utf-8-sig")
-        for token in ("{{starter_kit_version}}", "{{community_version}}", "{{kos_contract_version}}"):
+        for token in ("{{installer_version}}", "{{community_version}}", "{{kos_contract_version}}"):
             if token not in text:
                 findings.append(rel + " is missing " + token)
     workflow = root / ".github/workflows/ci.yml"
-    if workflow.is_file() and re.search(r"kos-starter-kit-v[0-9]", workflow.read_text(encoding="utf-8-sig")):
-        findings.append(".github/workflows/ci.yml hard-codes a release archive version")
+    if workflow.is_file() and re.search(r"kos-(?:starter-kit|community)-v[0-9*]", workflow.read_text(encoding="utf-8-sig")):
+        findings.append(".github/workflows/ci.yml must select the named customer archive for this release")
     return findings
 
 
@@ -445,12 +555,19 @@ def verify_privacy_receipt(root, source_fingerprint, archive_digest, archive_nam
         raise Blocked("RELEASE_PRIVACY_REVIEW_REQUIRED")
 
 
-def build_archive(payload, output, root=ROOT):
+def build_archive(payload, output=None, root=ROOT, *, tagged_source=None):
     payload = Path(os.path.abspath(payload))
     payload_files, manifest = verify_payload(payload, root, require_tested=True)
+    if tagged_source is not None and manifest["sourceFingerprint"] != tagged_source:
+        raise Blocked("RELEASE_TAG_PAYLOAD_MISMATCH")
+    archive_name = customer_archive_name(json_read(payload / "installer/release.json"))
+    if output is None:
+        output = root / "build" / archive_name
     output = Path(os.path.abspath(output))
     if output.parent != Path(os.path.abspath(root / "build")) or output.suffix.lower() != ".zip":
         raise Blocked("RELEASE_OUTPUT_MUST_BE_BUILD_ZIP")
+    if output.name != archive_name:
+        raise Blocked("RELEASE_OUTPUT_NAME_MISMATCH: expected " + archive_name)
     safe(root, "build/" + output.name, write=True)
     if output.exists():
         raise Blocked("RELEASE_ARCHIVE_ALREADY_EXISTS")
@@ -479,10 +596,28 @@ def main():
     action.add_argument("--freeze", action="store_true", help="copy the audited release tree to build/candidates")
     action.add_argument("--stage", action="store_true", help="stage and test the exact client payload folder")
     action.add_argument("--build", action="store_true", help="ZIP only a staged and tested payload folder")
+    action.add_argument("--archive-name", action="store_true", help="print the customer ZIP filename for this checkout")
+    action.add_argument("--check-tag", action="store_true", help="verify the finalized source at the canonical local Git tag")
     parser.add_argument("--candidate", type=str, help="frozen source folder for --stage, or 'auto'")
     parser.add_argument("--payload", type=str, help="tested client folder for --build, or 'auto'")
-    parser.add_argument("--output", type=Path, help="ZIP path under build/; existing files are never replaced")
+    parser.add_argument("--output", type=Path, help="canonical ZIP path under build/; existing files are never replaced")
     args = parser.parse_args()
+    metadata = json_read(ROOT / "installer/release.json")
+    version = release_version(metadata)
+    tagged_run = github_tag_context("v" + version, os.environ)
+    tagged_source = None
+    if tagged_run or args.check_tag:
+        tagged_source = verify_release_tag(ROOT, version, os.environ.get("GITHUB_SHA") if tagged_run else None)
+    if args.check_tag:
+        if args.candidate or args.payload or args.output:
+            raise Blocked("RELEASE_TAG_OPTIONS_INVALID")
+        print("Verified release tag v" + version + " and source " + tagged_source)
+        return
+    if args.archive_name:
+        if args.candidate or args.payload or args.output:
+            raise Blocked("RELEASE_ARCHIVE_NAME_OPTIONS_INVALID")
+        print(customer_archive_name(metadata))
+        return
     if args.freeze:
         if args.candidate or args.payload or args.output:
             raise Blocked("RELEASE_FREEZE_OPTIONS_INVALID")
@@ -499,6 +634,10 @@ def main():
             candidate = candidate_path(ROOT, candidate_manifest(ROOT, files))
         else:
             candidate = Path(args.candidate)
+        if tagged_source is not None:
+            _, manifest = verify_candidate(candidate)
+            if manifest["fingerprint"] != tagged_source:
+                raise Blocked("RELEASE_TAG_CANDIDATE_MISMATCH")
         payload = stage_payload(candidate)
         print("Tested client payload: " + str(payload))
         return
@@ -513,9 +652,7 @@ def main():
             payload = payload_path(ROOT, payload_manifest(candidate, client_files, source_manifest))
         else:
             payload = Path(args.payload)
-        release = json_read(payload / "installer/release.json")
-        output = args.output or ROOT / ("build/kos-starter-kit-v" + release["starterKitVersion"] + ".zip")
-        build_archive(payload, output)
+        build_archive(payload, args.output, tagged_source=tagged_source)
         return
     if args.candidate or args.payload or args.output:
         raise Blocked("RELEASE_AUDIT_OPTIONS_INVALID")

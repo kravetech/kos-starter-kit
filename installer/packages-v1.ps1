@@ -1,4 +1,4 @@
-# Immutable local package engine; dot-source after engine.ps1.
+# Load the immutable package engine after engine.ps1.
 $script:KosRegistries=@{skill='.agents/registry/skills.json';powerup='00 - System/Power-Ups/Registry/power-ups.json'}
 $script:KosGeneric='00 - System/Config/packages.json'
 $script:KosHomes=@{skill='.agents/skills';powerup='00 - System/Power-Ups/Installed';adapter='00 - System/Adapters/Installed';integration='00 - System/Integrations/Installed';bundle='00 - System/Bundles/Installed'}
@@ -19,7 +19,7 @@ function Test-KosSignature($Manifest,[string]$Trust) {
         if(-not $rsa.VerifyData((Get-KosBytes $unsigned),'SHA256',[Convert]::FromBase64String($signature['value']))){throw 'SIGNATURE_INVALID'}
     } finally {$rsa.Dispose()}
 }
-function Read-KosPackage([string]$Path,[string]$Trust='') {
+function Read-KosPackage([string]$Path,[string]$Trust='', [version]$ContractVersion=$script:KosRelease.kosContractVersion) {
     $absolute=[IO.Path]::GetFullPath($Path);$null=Get-KosSafe (Split-Path -Parent $absolute) (Split-Path -Leaf $absolute);$blobs=@{}
     if(Test-Path -LiteralPath $absolute -PathType Container){
         $names=@{};$total=0L
@@ -55,7 +55,7 @@ function Read-KosPackage([string]$Path,[string]$Trust='') {
     Test-KosSchema $manifest.defaults $manifest.configurationSchema
     $expectedSchema=if($manifest.type -eq 'skill'){'kos-skill/v1'}elseif($manifest.type -eq 'powerup'){'kos-powerup/v1'}else{'kos-package/v1'}
     if($manifest.schema -ne $expectedSchema){throw 'PACKAGE_SCHEMA_IDENTITY'}
-    if([version]$script:KosRelease.kosContractVersion -lt [version]$manifest.compatibility.min -or [version]$script:KosRelease.kosContractVersion -ge [version]$manifest.compatibility.maxExclusive){throw 'PACKAGE_CONTRACT_INCOMPATIBLE'}
+    if($ContractVersion -lt [version]$manifest.compatibility.min -or $ContractVersion -ge [version]$manifest.compatibility.maxExclusive){throw 'PACKAGE_CONTRACT_INCOMPATIBLE'}
     $canonicalEditions=@($manifest.supportedEditions | ForEach-Object {Get-KosCanonicalEdition $_})
     if($canonicalEditions.Count -eq 1 -and $canonicalEditions[0] -eq 'pro' -and @($manifest['requiredCapabilities'] | Where-Object {$_ -like 'kos.pro.*' -or $_ -like 'kos.core.*'}).Count -eq 0){throw 'PRO_ONLY_REQUIRES_CAPABILITY'}
     if($canonicalEditions.Count -eq 1 -and $canonicalEditions[0] -eq 'enterprise' -and @($manifest['requiredCapabilities'] | Where-Object {$_ -like 'kos.enterprise.*'}).Count -eq 0){throw 'ENTERPRISE_ONLY_REQUIRES_CAPABILITY'}
@@ -109,9 +109,12 @@ function New-KosPackagePlan([string]$Root,[string]$Command,[string]$Package,[str
     $data=Get-KosRegistries $Root;$all=@{}
     foreach($registry in $data.psbase.Values){foreach($key in $registry.packages.psbase.Keys){if($all.Contains($key)){throw 'PACKAGE_DUPLICATE_ID'};$all[$key]=$registry.packages[$key]}}
     $planned=@{schemaVersion='1.0.0';operation='package '+$Command;targetType='managed-kos';edition=(Get-KosCanonicalEdition $state.edition);previousVersion=$state.starterKitVersion;resultingVersion=$state.starterKitVersion;items=(New-Object System.Collections.Generic.List[object]);permissions=@();blocked=$false};$payload=@{}
+    $planned.product = 'KOS Community'
+    $planned.communityVersion = $state['communityVersion']
+    $planned.installerVersion = $state['installerVersion']
     if($Command -eq 'list'){$planned.packages=$all;return @{plan=$planned;payload=$payload}}
     if($Command -in @('install','update','validate')){
-        $parsed=Read-KosPackage $Package $Trust;$manifest=$parsed.manifest;$Id=$manifest.id
+        $parsed=Read-KosPackage $Package $Trust $state.kosContractVersion;$manifest=$parsed.manifest;$Id=$manifest.id
         $stateEdition=Get-KosCanonicalEdition $state.edition;$supported=@($manifest.supportedEditions | ForEach-Object {Get-KosCanonicalEdition $_})
         if($stateEdition -notin $supported){throw 'PACKAGE_EDITION_INCOMPATIBLE'}
         foreach($cap in $manifest['requiredCapabilities']){if($cap -notin $state.capabilities){throw 'PACKAGE_CAPABILITY_MISSING'}}
@@ -167,7 +170,19 @@ function New-KosPackagePlan([string]$Root,[string]$Command,[string]$Package,[str
 
 function New-KosRollbackPlan([string]$Root,[string]$RunId) {
     if($RunId -cnotmatch '^[a-f0-9]{32}$'){throw 'RUN_ID_INVALID'}
-    $journal=Read-KosJson (Get-KosSafe $Root ($script:KosRuns+'/'+$RunId+'/journal.json'))
+    $runPath = Get-KosSafe $Root ($script:KosRuns + '/' + $RunId)
+    try { $runAttributes = [IO.File]::GetAttributes($runPath) }
+    catch [IO.FileNotFoundException] { throw 'ROLLBACK_RUN_NOT_FOUND' }
+    catch [IO.DirectoryNotFoundException] { throw 'ROLLBACK_RUN_NOT_FOUND' }
+    if (-not ($runAttributes -band [IO.FileAttributes]::Directory)) { throw 'ROLLBACK_RUN_INVALID' }
+    $journalPath = Get-KosSafe $Root ($script:KosRuns + '/' + $RunId + '/journal.json')
+    try { $contents = [IO.File]::ReadAllText($journalPath, $script:Utf8) }
+    catch [IO.FileNotFoundException] { throw 'ROLLBACK_JOURNAL_MISSING' }
+    catch [IO.DirectoryNotFoundException] { throw 'ROLLBACK_JOURNAL_MISSING' }
+    catch [UnauthorizedAccessException] { throw 'ROLLBACK_JOURNAL_UNREADABLE' }
+    catch [IO.IOException] { throw 'ROLLBACK_JOURNAL_UNREADABLE' }
+    try { $journal = Convert-KosJson $contents } catch { throw 'ROLLBACK_JOURNAL_INVALID' }
+    if ($journal -isnot [System.Collections.IDictionary] -or $journal['entries'] -isnot [array]) { throw 'ROLLBACK_JOURNAL_INVALID' }
     if($journal.runId -cne $RunId){throw 'JOURNAL_ID_MISMATCH'}
     $plan=@{schemaVersion='1.0.0';operation='rollback';targetType='managed-kos';items=(New-Object System.Collections.Generic.List[object]);blocked=$false};$payload=@{}
     $entries=@($journal.entries);[Array]::Reverse($entries)
@@ -195,11 +210,16 @@ function New-KosRollbackPlan([string]$Root,[string]$RunId) {
     if($plan.recovery -eq 'incomplete'){foreach($item in $plan.items){if($item.path -match '(kos-installation.json|skills.json|power-ups.json|packages.json|capabilities.json)$'){$item.action='PRESERVE'}}}
     return @{plan=$plan;payload=$payload}
 }
-function Test-KosInstallation([string]$Root) {
+function Test-KosInstallation([string]$Root, $InstalledRelease=$null) {
     $findings=New-Object System.Collections.Generic.List[object]
     try{
         $files=Get-KosInventory $Root;$state=Get-KosState $Root
         if(-not $state){$findings.Add(@{rule='META_MISSING';path=$script:KosState;severity='error'});return ,$findings.ToArray()}
+        if ($null -ne $InstalledRelease) {
+            $InstalledRelease.product = 'KOS Community'
+            $InstalledRelease.communityVersion = $state['communityVersion']
+            $InstalledRelease.installerVersion = $state['installerVersion']
+        }
         foreach($rel in $state.components.psbase.Keys){
             try{$actual=Get-KosCurrent $Root $rel;if($null -eq $actual){$findings.Add(@{rule='ASSET_MISSING';path=$rel;severity='error'})}elseif($actual -ne $state.components[$rel].installedHash){$findings.Add(@{rule='ASSET_MODIFIED';path=$rel;severity='warning'})}}
             catch{$findings.Add(@{rule='ASSET_LINK_PRESERVED';path=$rel;severity='error'})}

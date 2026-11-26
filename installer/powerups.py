@@ -8,7 +8,7 @@ sequences (including sequences of mappings), flow lists (``[a, b]``/``[]``),
 quoted or bare scalars, and ``#`` comments. It does not support anchors,
 tags, multi-line scalars, or flow mappings. That scope is sufficient for
 ``registry.yaml``, ``settings.yaml``, and Power-Up ``manifest.yaml`` files and
-keeps the starter kit dependency-free.
+keeps the KOS Community installer dependency-free.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from safety import Blocked, link, safe
+from safety import Blocked, STATE, json_read, link, safe
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$")
 ID_RE = re.compile(r"^[a-z][a-z0-9-]*$")
@@ -299,6 +299,45 @@ def validate_registry_dict(registry: Any) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
+def installed_core_contract(root: Path) -> str | None:
+    version = r"[0-9]+\.[0-9]+\.[0-9]+"
+    receipt = safe(root, STATE)
+    if receipt.is_file():
+        try:
+            state = json_read(receipt)
+            value = state.get("kosContractVersion") if isinstance(state, dict) else None
+            if isinstance(value, str) and re.fullmatch(version, value):
+                return value
+        except (ValueError, OSError):
+            pass
+    architecture = safe(root, "ARCHITECTURE.md")
+    if not architecture.is_file():
+        return None
+    # Only a single top-level scalar in a closed front matter block can establish the contract.
+    field = re.compile(r"""^(?:kos_contract_version|"kos_contract_version"|'kos_contract_version')[ \t]*:(.*)$""")
+    value = None
+    seen = False
+    try:
+        with architecture.open(encoding="utf-8-sig") as document:
+            if document.readline().rstrip() != "---":
+                return None
+            for line in document:
+                line = line.rstrip()
+                if line in {"---", "..."}:
+                    return value
+                match = field.fullmatch(line)
+                if match:
+                    if seen:
+                        return None
+                    seen = True
+                    scalar = re.fullmatch(rf"""[ \t]+(["']?)({version})\1(?:[ \t]+#.*)?""", match[1])
+                    if scalar:
+                        value = scalar[2]
+    except (UnicodeError, OSError):
+        pass
+    return None
+
+
 def validate_manifest_dict(manifest: Any, kos_version: str | None = None) -> tuple[list[str], list[str]]:
     """Validate a parsed Power-Up ``manifest.yaml``. Returns (errors, warnings)."""
     errors: list[str] = []
@@ -322,9 +361,11 @@ def validate_manifest_dict(manifest: Any, kos_version: str | None = None) -> tup
         errors.append("manifest.kos_compatibility.maximum_version must be null or a semantic version")
     if kos_version and SEMVER_RE.match(str(kos_version)) and minimum and SEMVER_RE.match(str(minimum)):
         if _semver_tuple(kos_version) < _semver_tuple(minimum):
-            errors.append(f"installed KOS {kos_version} is older than the Power-Up's minimum {minimum}")
+            errors.append(f"Installed KOS Core contract {kos_version} is older than the Power-Up's minimum {minimum}.")
         if maximum and SEMVER_RE.match(str(maximum)) and _semver_tuple(kos_version) > _semver_tuple(maximum):
-            errors.append(f"installed KOS {kos_version} is newer than the Power-Up's maximum {maximum}")
+            errors.append(f"Installed KOS Core contract {kos_version} is newer than the Power-Up's maximum {maximum}.")
+    elif not kos_version:
+        warnings.append("Power-Up compatibility was not checked because the installed KOS Core contract version is unknown.")
     installation = manifest.get("installation") or {}
     supported_modes = installation.get("supported_modes") or []
     if not supported_modes:

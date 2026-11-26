@@ -1,6 +1,8 @@
 # KOS Community
 
-KOS Community 1.1.0 is a portable Markdown workspace for notes, projects and AI-assisted workflows. Starter Kit 1.3.0 is its installer and handles upgrades from earlier releases.
+KOS Community 1.3.1 is a portable Markdown workspace for notes, projects and AI-assisted workflows. Its installer creates new vaults and upgrades existing ones. This release uses KOS Core contract 1.0.0.
+
+This version uses Git tag `v1.3.1` and installer **`kos-community-v1.3.1.zip`**. To download a published release, choose its named installer ZIP under **Assets**. GitHub also offers source archives for developers. [Browse published releases](https://github.com/kravetech/kos-community/releases)
 
 Obsidian is optional. Choose a new or empty folder for KOS Community, then open it in your preferred Markdown editor. For an existing KOS vault, follow the [update instructions](INSTALL.md#update-an-existing-kos-vault).
 
@@ -10,7 +12,6 @@ Obsidian is optional. Choose a new or empty folder for KOS Community, then open 
 
 - **KOS Core** — shared technical architecture and compatibility contract.
 - **KOS Community** — free and open-source edition.
-  - **KOS Starter Kit** — official open-source bootstrap distribution.
 - **Commercial workflows** run as Power-Ups on the Community host. An individual purchase grants use of the purchased version. The combined Academy Pro + KOS Pro subscription covers eligible workflows included in the plan. A workflow marked for separate purchase requires its own purchase.
 - **Legacy Pro 1.1.0** is an earlier commercial distribution with its own license.
 - **KOS Enterprise** — planned organizational and multi-user edition.
@@ -20,11 +21,11 @@ The bundled Project Action List Power-Up and its local automation are free to us
 ## What It Generates
 
 - Numbered Obsidian-compatible domain structure.
-- Canonical `AGENTS.md` router and adapter instructions for Gemini CLI, Claude Code and Codex CLI.
+- Canonical `AGENTS.md` router and instructions for the selected Gemini CLI, Claude Code or Codex CLI adapters.
 - Durable `memory.md` and current-state `handoff.md`.
 - Context, metadata, privacy, token, archive, and automation policies.
 - Optional examples, Git initialization, and migration-safe conflict files.
-- Installation state, privacy scan, and validation report.
+- An installation record and a run folder containing `plan.json`, `journal.json` and `report.md`. Run validation after setup and use the [privacy scanner](PRIVACY.md) for a separate privacy report.
 
 ## Installation and workflow clients
 
@@ -66,15 +67,19 @@ Generated Knowledge OS repositories are private by default. They may contain ide
 - `templates/`: neutral source templates.
 - `scripts/`: installation validation, privacy, manifest, and Power-Up utilities.
 
-## Status
-
-This package contains KOS Community 1.1.0 and Starter Kit 1.3.0 with KOS Core contract 1.0.0. Follow [INSTALL.md](INSTALL.md) for installation and upgrade commands. See [Project context](docs/PROJECT-CONTEXT.md) to set up one project and search its selected notes.
+To inventory an extracted installer, run `./scripts/generate-manifest.ps1` or
+`bash scripts/generate-manifest.sh` from its root. The result in
+`build/file-manifest.json` lists the size and SHA-256 of each file declared in
+`installer/archive-files.json`. Compare the ZIP’s own checksum with the published
+release checksum before extracting it.
 
 ## Learning and support
 
+To set up an individual project, approve its memory and handoff, then select the notes it can search. [Project context guide](docs/PROJECT-CONTEXT.md)
+
 Start with the bundled free tutorial to turn selected meeting tasks into a cited action list, adapt the example and roll back an update. [Project Action List tutorial](docs/PROJECT-ACTION-LIST.md)
 
-For ordinary bugs or documentation questions, search or open an issue. Include the kit and package versions, the command, the error and a small synthetic example. Community support is best effort. [Public issue tracker](https://github.com/kravetech/kos-starter-kit/issues)
+For ordinary bugs or documentation questions, search or open an issue. Include the Community and installer versions, any affected package version, the command, the error and a small synthetic example. Community support is best effort. [Public issue tracker](https://github.com/kravetech/kos-community/issues)
 
 Report suspected vulnerabilities or privacy leaks through the private route. [Security reporting instructions](SECURITY.md)
 

@@ -121,6 +121,28 @@ class SafetyTests(unittest.TestCase):
         with self.assertRaisesRegex(Blocked, "CONTRACT_DOWNGRADE"):
             plan(self.vault, "upgrade", self.answers)
 
+    def test_upgrade_refuses_a_newer_installed_engine(self):
+        self.install()
+        state = json_read(self.vault / STATE)
+        state["installerVersion"] = "9.0.0"
+        write(self.vault, STATE, encoded(state))
+        before = inventory(self.vault)
+        with self.assertRaisesRegex(Blocked, "INSTALLER_DOWNGRADE"):
+            plan(self.vault, "upgrade", self.answers)
+        self.assertEqual(before, inventory(self.vault))
+
+    def test_package_compatibility_uses_the_target_contract(self):
+        self.install()
+        state = json_read(self.vault / STATE)
+        state["kosContractVersion"] = "0.9.0"
+        write(self.vault, STATE, encoded(state))
+        newer = self.package()
+        older = self.package(compatibility={"min": "0.9.0", "maxExclusive": "1.0.0"})
+        with self.assertRaisesRegex(Blocked, "PACKAGE_CONTRACT_INCOMPATIBLE"):
+            plan_package(self.vault, "validate", newer)
+        result, _ = plan_package(self.vault, "validate", older)
+        self.assertFalse(result["blocked"])
+
     def test_configuration_schema_constraints_fail_closed(self):
         from contracts import validate
         validate("2026-09-19", {"type": "string", "format": "date"})

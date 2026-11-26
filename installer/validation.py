@@ -6,7 +6,7 @@ from packages import registries, verify_installed
 from contracts import check
 
 
-def validate_installation(root):
+def validate_installation(root, installed_release=None):
     findings = []
     def add(rule, path="", severity="error"):
         findings.append({"rule": rule, "path": path, "severity": severity})
@@ -16,6 +16,9 @@ def validate_installation(root):
         if state is None:
             add("META_MISSING", STATE)
             return findings
+        if installed_release is not None:
+            installed_release.update(product="KOS Community", communityVersion=state.get("communityVersion"),
+                                     installerVersion=state["installerVersion"])
         by_path = {i["path"]: i for i in files}
         for rel, component in state["components"].items():
             if rel not in by_path:

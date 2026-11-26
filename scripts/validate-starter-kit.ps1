@@ -1,7 +1,8 @@
 [CmdletBinding()]
-param([string]$StarterRoot = (Split-Path -Parent $PSScriptRoot), [string]$Report)
+param([string]$StarterRoot, [string]$Report)
 $ErrorActionPreference = "Stop"
 try {
+    if (-not $StarterRoot) { $StarterRoot = Split-Path -Parent $PSScriptRoot }
     $root = [System.IO.Path]::GetFullPath($StarterRoot)
     if (-not $Report) { $Report = Join-Path $root "reports\VALIDATION-REPORT.md" }
     $requiredFiles = @(
@@ -35,7 +36,7 @@ try {
     $example = Get-Content -LiteralPath (Join-Path $root "installer\answers.example.json") -Raw | ConvertFrom-Json
     $available = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($section in @("user","system","privacy","rhythm")) { foreach ($property in $example.$section.PSObject.Properties) { [void]$available.Add($property.Name) } }
-    @("system_name","system_short_name","system_description","starter_kit_version","community_version","kos_contract_version") | ForEach-Object { [void]$available.Add($_) }
+    @("system_name","system_short_name","system_description","installation_date","starter_kit_version","installer_version","community_version","kos_contract_version") | ForEach-Object { [void]$available.Add($_) }
     $tokens = [System.Collections.Generic.HashSet[string]]::new()
     (Get-Content -LiteralPath (Join-Path $root "installer/assets.json") -Raw | ConvertFrom-Json).assets | ForEach-Object {
         $sourcePath = Join-Path $root $_.source
@@ -47,10 +48,10 @@ try {
         if ($content -notmatch '\$ErrorActionPreference' -or $content -notmatch '\bexit\b') { $findings += "ERROR unsafe PowerShell error handling: ``$script``" }
     }
     $status = if (@($findings | Where-Object { $_ -like "ERROR*" }).Count -eq 0) { "PASS" } else { "FAIL" }
-    $body = @("# Starter-Kit Validation Report","","Generated: $([DateTimeOffset]::Now.ToString('o'))","Status: **$status**","","## Findings","")
+    $body = @("# KOS Community Installer Validation Report","","Generated: $([DateTimeOffset]::Now.ToString('o'))","Status: **$status**","","## Findings","")
     $body += if ($findings.Count) { $findings | ForEach-Object { "- $_" } } else { "- None." }
     New-Item -ItemType Directory -Path (Split-Path -Parent $Report) -Force | Out-Null
     Set-Content -LiteralPath $Report -Value $body -Encoding utf8
-    Write-Output "Starter-kit validation: $status"
+    Write-Output "KOS Community installer validation: $status"
     if ($status -eq "PASS") { exit 0 } else { exit 2 }
 } catch { [Console]::Error.WriteLine("ERROR: $($_.Exception.Message)"); exit 3 }

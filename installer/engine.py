@@ -4,9 +4,11 @@ from __future__ import annotations
 import copy
 import re
 import subprocess
+from datetime import date
 from pathlib import Path
 from urllib.parse import unquote
 
+from community_documents import community_document_update
 from contracts import RELEASE, canonical_edition, check, version
 from safety import (Blocked, ROOT, STATE, RUNS, current_hash, digest, encoded,
                     inventory, json_read, merge_existing, relative, safe, target_root)
@@ -163,6 +165,8 @@ def state_read(root):
             raise Blocked("ASSET_PATH_MISMATCH")
     if data["starterKitVersion"] not in RELEASE["supportedUpgradeVersions"]:
         raise Blocked("VERSION_UNSUPPORTED_OR_DOWNGRADE")
+    if version(data["installerVersion"]) > version(RELEASE["installerVersion"]):
+        raise Blocked("INSTALLER_DOWNGRADE")
     if version(data["kosContractVersion"]) > version(RELEASE["kosContractVersion"]):
         raise Blocked("CONTRACT_DOWNGRADE")
     if data.get("communityVersion") and version(data["communityVersion"]) > version(RELEASE["communityVersion"]):
@@ -177,7 +181,13 @@ def answers_read(value):
     answers = merge_existing(defaults, value)
     if answers["installation"].get("allow_overwrite"):
         raise Blocked("GLOBAL_OVERWRITE_FORBIDDEN")
-    check("answers", answers)
+    try:
+        check("answers", answers)
+    except Blocked as error:
+        prefix = "SCHEMA_CONST:$.installation."
+        if str(error).startswith(prefix):
+            raise Blocked("FIXED_INSTALLATION_OPTION:" + str(error)[len(prefix):]) from error
+        raise
     return answers
 
 
@@ -189,8 +199,9 @@ def contents(answers, profile, old=None):
     for section in ("user", "system", "privacy", "rhythm"):
         for key, val in answers[section].items():
             values[key] = str(val).lower() if isinstance(val, bool) else ", ".join(map(str, val)) if isinstance(val, list) else str(val)
-    values.update(system_name=answers["system"]["name"], system_short_name=answers["system"]["short_name"], system_description=answers["system"]["description"])
-    values.update(starter_kit_version=RELEASE["starterKitVersion"], community_version=RELEASE["communityVersion"], kos_contract_version=RELEASE["kosContractVersion"])
+    values.update(system_name=answers["system"]["name"], system_short_name=answers["system"]["short_name"], system_description=answers["system"]["description"],
+                  installation_date=answers["system"].get("installation_date", ""))
+    values.update(starter_kit_version=RELEASE["starterKitVersion"], installer_version=RELEASE["installerVersion"], community_version=RELEASE["communityVersion"], kos_contract_version=RELEASE["kosContractVersion"])
     result = {}
     for asset in catalog["assets"]:
         asset = dict(asset)
@@ -205,8 +216,9 @@ def contents(answers, profile, old=None):
             continue
         source = safe(ROOT, asset["source"])
         text = source.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
-        tokens = set(re.findall(r"\{\{([a-z0-9_]+)\}\}", text)) - {"starter_kit_version", "community_version", "kos_contract_version"}
+        tokens = set(re.findall(r"\{\{([a-z0-9_]+)\}\}", text)) - {"starter_kit_version", "installer_version", "community_version", "kos_contract_version"}
         if tokens:
+            asset["renderTokens"] = tokens
             asset["renderFingerprint"] = digest(encoded({key: values.get(key, "") for key in tokens}))
         text = re.sub(r"\{\{([a-z0-9_]+)\}\}", lambda m: values.get(m[1], m[0]), text)
         hashes = []
@@ -265,7 +277,81 @@ def evidence(root, files):
     return found
 
 
-def plan(root: Path, operation: str, answers: dict, profile="standard", decisions=None):
+def upgrade_changelog(path, current, state, previous_version, old):
+    """An existing vault owns its history. Offer an additive entry only for a transition."""
+    raw = path.read_bytes() if current is not None else b""
+    classification = "MISSING" if current is None else "USER_MODIFIED"
+    previous_community = state.get("communityVersion")
+    previous_installer = state.get("installerVersion")
+    target = RELEASE["communityVersion"]
+    installer = RELEASE["installerVersion"]
+    transitioning = previous_version and (
+        previous_version != RELEASE["starterKitVersion"]
+        or previous_community and previous_community != target
+        or previous_installer and previous_installer != installer)
+    if not transitioning:
+        expected = old.get("proposalHash") or old.get("installedHash")
+        if current is not None and current == expected:
+            return "IDENTICAL", "UNCHANGED", raw
+        return classification, "PRESERVE", raw
+
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return classification, "PRESERVE", raw
+    if "\0" in text:
+        return classification, "PRESERVE", raw
+    newline = "\r\n" if "\r\n" in text else "\r" if "\r" in text else "\n"
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    heading = f"## KOS Community [{target}]"
+    if previous_community and previous_community != target:
+        detail = f"- Upgraded from KOS Community {previous_community} using installer {installer}."
+    elif previous_installer and previous_installer != installer:
+        detail = f"- Updated the installer from {previous_installer} to {installer}."
+    else:
+        detail = f"- Updated the vault using installer {installer}."
+    if re.search(r"^" + re.escape(heading) + r" - \d{4}-\d{2}-\d{2}\n\n" + re.escape(detail) + r"$",
+                 normalized, re.MULTILINE):
+        return classification, "PRESERVE", raw
+    entry_date = date.today().isoformat()
+    trailing_newlines = len(normalized) - len(normalized.rstrip("\n"))
+    prefix = "# Changelog\n\n" if not text else "\n" * max(0, 2 - trailing_newlines)
+    addition = f"{prefix}{heading} - {entry_date}\n\n{detail}\n"
+    return classification, "PROPOSE", raw + addition.replace("\n", newline).encode("utf-8")
+
+
+def explicit_template_tokens(supplied):
+    keys = {key for section in ("user", "system", "privacy", "rhythm") for key in supplied.get(section, {})}
+    for key in ("name", "short_name", "description"):
+        if key in supplied.get("system", {}):
+            keys.add("system_" + key)
+    return keys
+
+
+def installation_date(root, state, files, answers, first_install):
+    if state and state.get("installationDate"):
+        return state["installationDate"]
+    # Adopting a proposal also records its hash. Only an original installer-created
+    # README can establish a missing historical date.
+    readme = state["components"].get("README.md", {}) if state else {}
+    registered_hash = readme.get("installedHash") if readme.get("lastInstallerAction") == "CREATE" else None
+    if registered_hash and any(f["path"] == "README.md" and f.get("hash") == registered_hash for f in files):
+        path = safe(root, "README.md")
+        raw = path.read_bytes()
+        if digest(raw) == registered_hash:
+            header = re.match(rb"^(?:\xef\xbb\xbf)?# [^\r\n]+\r?\n\r?\n[^\r\n]*\r?\n\r?\n"
+                              rb"Owner: [^\r\n]*\r?\nTimezone: [^\r\n]*\r?\n"
+                              rb"Installed: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)", raw)
+            if header:
+                try:
+                    return date.fromisoformat(header[1].decode("ascii")).isoformat()
+                except ValueError:
+                    pass
+    supplied = answers["system"].get("installation_date")
+    return supplied or (date.today().isoformat() if first_install else None)
+
+
+def plan(root: Path, operation: str, answers: dict, profile="standard", decisions=None, supplied_answers=None):
     root = target_root(root)
     files = inventory(root)
     kind = detect(root, files)
@@ -290,21 +376,33 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
             raise Blocked("LEGACY_VERSION_UNKNOWN")
         if previous_version not in RELEASE["supportedUpgradeVersions"]:
             raise Blocked("VERSION_UNSUPPORTED_OR_DOWNGRADE")
+    # Resolve once for this plan. The recorded date survives later upgrades and repairs.
+    original_date = installation_date(root, state, files, answers, operation == "new" or operation == "enhance" and not state)
+    answers = copy.deepcopy(answers)
+    answers["system"]["installation_date"] = original_date or ""
     # Existing profile/provider choices are configuration, not new defaults.
     if state:
         profile = state["profile"]
-        answers = copy.deepcopy(answers)
         answers["installation"]["providers"] = state.get("providers", ["codex", "claude"])
         answers["installation"]["include_samples"] = state.get("includeSamples", False)
         answers["installation"]["custom_modules"] = state.get("customModules", [])
     old_assets = state.get("components", {}) if state else {}
     desired = contents(answers, profile, state)
+    check_answers = supplied_answers is not None and operation in {"upgrade", "repair"}
+    supplied_tokens = explicit_template_tokens(supplied_answers) if check_answers else set()
+    if original_date:
+        supplied_tokens.add("installation_date")
     plan_data = {"schemaVersion": "1.0.0", "operation": operation, "targetType": kind,
+                 "product": "KOS Community", "communityVersion": RELEASE["communityVersion"],
+                 "previousCommunityVersion": state.get("communityVersion") if state else None,
+                 "installerVersion": RELEASE["installerVersion"],
                  "previousVersion": previous_version,
                  "resultingVersion": RELEASE["starterKitVersion"], "edition": canonical_edition(state.get("edition", RELEASE["edition"])) if state else RELEASE["edition"],
                  "profile": profile, "items": [], "links": [f["path"] for f in files if f["kind"] == "link"],
                  "decisions": decisions, "folderMappings": []}
     plan_data["inventorySummary"] = {"files": sum(f["kind"] == "file" for f in files), "directories": sum(f["kind"] == "directory" for f in files), "links": len(plan_data["links"])}
+    if original_date:
+        plan_data["installationDate"] = original_date
     plan_data["postActions"] = ["INITIALIZE_GIT"] if operation == "new" and answers["installation"].get("initialize_git") else []
     if answers["installation"].get("create_initial_commit"):
         raise Blocked("INITIAL_COMMIT_REQUIRES_MANUAL_CONTENT_REVIEW")
@@ -316,6 +414,11 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
     installed_caps = []
     for rel, (data, asset) in sorted(desired.items()):
         current = None
+        history = False
+        reason = None
+        prior = old_assets.get(rel, {})
+        incomplete_answers = check_answers and not asset.get("renderTokens", set()) <= supplied_tokens
+        unverified = False
         owner = old_assets.get(rel, {}).get("ownership", asset["ownership"])
         cap = asset.get("capability")
         classification, action = "MISSING", "CREATE"
@@ -325,7 +428,34 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
                 classification, action = "PATH_CONFLICT", "BLOCK"
             else:
                 current = current_hash(root, rel)
-                if current == digest(data):
+                # A prior questionnaire fingerprint cannot certify later edits to the live document.
+                verified_receipt = (current is not None and current == prior.get("installedHash")
+                                    and asset.get("renderFingerprint") == prior.get("renderFingerprint"))
+                unknown_date = "installation_date" in asset.get("renderTokens", set()) and not original_date
+                unverified = unknown_date or incomplete_answers and not verified_receipt
+                history = rel == "CHANGELOG.md" and (previous_version is not None or
+                                                     operation == "enhance" and current is not None)
+                if history:
+                    owner = "user-owned"
+                    classification, action, data = upgrade_changelog(
+                        path, current, state or {}, previous_version, old_assets.get(rel, {}))
+                elif unverified:
+                    reason = "Personalization could not be verified. Supply the original questionnaire answers to regenerate this file."
+                    data = b""
+                    action = "SKIP"
+                    if current is not None:
+                        raw = path.read_bytes()
+                        data = raw
+                        classification, action = "USER_MODIFIED", "PRESERVE"
+                        if rel in {"README.md", "ARCHITECTURE.md"}:
+                            owner = "user-owned"
+                            data = community_document_update(rel, raw, RELEASE)
+                        if data != raw:
+                            action = "PROPOSE"
+                            reason = "Updated recognized release information and setup instructions in the existing document."
+                        elif current in {prior.get("installedHash"), prior.get("proposalHash")}:
+                            classification, action = "IDENTICAL", "UNCHANGED"
+                elif current == digest(data):
                     classification, action = "IDENTICAL", "UNCHANGED"
                 elif current in asset.get("compatibleHashes", []):
                     classification, action = "COMPATIBLE_EXISTING", "UNCHANGED"
@@ -357,13 +487,13 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
                         classification, action = "USER_MODIFIED", "PROPOSE"
                         if not old:
                             owner = "user-owned"
-                if cap and current is None:
+                if cap and current is None and not unverified:
                     equivalent = [e for e in found.get(cap, []) if rel not in e["paths"]]
                     if equivalent:
                         classification, action = "SEMANTIC_DUPLICATE", "BLOCK"
                         if decisions.get(rel) == "adopt" and all(e["valid"] for e in equivalent):
                             action = "ADOPT"
-                if asset.get("registry") and current is None:
+                if asset.get("registry") and current is None and not unverified:
                     # Legacy manifests/registries outside canonical paths need review.
                     legacy_candidates = [f for f in files if f["kind"] == "file" and
                                          f["path"].lower().endswith(("skill.json", "registry.yaml", "skills.json", "power-ups.json")) and f["path"] != rel]
@@ -375,9 +505,9 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
         choice = decisions.get(rel)
         if choice in {"keep", "skip"} and classification not in {"SECURITY_CONFLICT", "RESERVED_PATH_CONFLICT"}:
             action = "PRESERVE" if choice == "keep" else "SKIP"
-        elif choice == "replace" and classification == "USER_MODIFIED" and owner in {"managed", "managed-customizable"}:
+        elif choice == "replace" and not unverified and classification == "USER_MODIFIED" and owner in {"managed", "managed-customizable"}:
             action = "UPDATE_APPROVED"
-        elif choice == "propose" and classification == "USER_MODIFIED":
+        elif choice == "propose" and classification == "USER_MODIFIED" and not history and not unverified:
             action = "PROPOSE"
         elif choice and choice not in {"keep", "skip", "replace", "propose", "adopt"}:
             raise Blocked("DECISION_INVALID")
@@ -386,6 +516,8 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
         item = {"path": rel, "classification": classification, "action": action,
                 "currentHash": current, "desiredHash": digest(data), "ownership": owner,
                 "componentId": asset["componentId"]}
+        if reason:
+            item["reason"] = reason
         plan_data["items"].append(item)
         payload[rel] = data
         if action in {"CREATE", "UPDATE_SAFE", "UPDATE_APPROVED", "MERGE", "UNCHANGED"}:
@@ -395,13 +527,19 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
                       "lastInstallerAction": action}
             if asset.get("renderFingerprint"):
                 record["renderFingerprint"] = asset["renderFingerprint"]
+            if unverified or history:
+                # A manually accepted version-only proposal carries its prior personalization evidence.
+                if prior.get("renderFingerprint"):
+                    record["renderFingerprint"] = prior["renderFingerprint"]
+                else:
+                    record.pop("renderFingerprint", None)
             # Identical legacy bytes can be adopted with exact template evidence.
             if previous and action == "UNCHANGED" and previous["installedHash"] == current:
                 record = previous
             components[rel] = record
             if cap:
                 installed_caps.append({"id": cap, "version": RELEASE["adapterVersion"] if asset.get("provider") else RELEASE["kosContractVersion"], "paths": [rel]})
-        elif action == "PROPOSE":
+        elif action == "PROPOSE" and (current is not None or rel in old_assets):
             components[rel] = {**old_assets.get(rel, {"path": rel, "componentId": asset["componentId"], "ownership": "user-owned", "sourceVersion": "unknown", "installedHash": current, "lastInstallerAction": "PRESERVE"}), "proposalHash": digest(data)}
         elif action == "ADOPT":
             for e in found.get(cap, []):
@@ -420,9 +558,11 @@ def plan(root: Path, operation: str, answers: dict, profile="standard", decision
     _metadata_item(root, plan_data, payload, CAPABILITIES, encoded(cap_data))
     next_state = copy.deepcopy(state) if state else {"schemaVersion": "1.0.0", "edition": RELEASE["edition"], "origin": operation}
     next_state["edition"] = canonical_edition(next_state.get("edition", RELEASE["edition"]))
+    if original_date:
+        next_state["installationDate"] = original_date
     privacy = next_state.setdefault("privacy", {})
     prior_folders = privacy.get("restricted_folders", [])
-    chosen_folders = answers["privacy"].get("restricted_folders", [])
+    chosen_folders = (supplied_answers.get("privacy", {}) if check_answers else answers["privacy"]).get("restricted_folders", [])
     privacy["restricted_folders"] = list(dict.fromkeys(prior_folders + chosen_folders))
     next_state.update({k: RELEASE[k] for k in ("starterKitVersion", "installerVersion", "communityVersion", "kosContractVersion")})
     next_state.update(profile=profile, providers=answers["installation"]["providers"], components=components,

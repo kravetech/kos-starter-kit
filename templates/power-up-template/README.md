@@ -2,12 +2,11 @@
 
 <description>
 
-This is a KOS Power-Up: an optional, independently installed and versioned
-extension that integrates with a Knowledge OS through the manifest-driven
-contract defined by the KOS Starter Kit (`docs/POWER-UP-MANIFEST-SPECIFICATION.md`
-in the starter kit, or the copy under `00 - System/Power-Ups/` in a KOS
-instance). It does not become part of the KOS core and is never installed
-automatically.
+This scaffold describes a legacy YAML Power-Up for read-only discovery.
+Validate `manifest.yaml` against `installer/power-up-manifest.schema.json` in
+the extracted Community installer. To build an installable Power-Up, use the
+[v1 package format](../../docs/PACKAGES-V1.md) and the
+[working example](../../docs/PROJECT-ACTION-LIST.md).
 
 ## Status
 
@@ -34,9 +33,9 @@ kos-example/
 
 ## Installation
 
-This Power-Up is installed **outside** any KOS vault, typically as a sibling
-directory (for example `<workspace-root>/KOS Power-Ups/kos-example/`). See
-`docs/installation.md`.
+Keep the legacy example outside the vault while reviewing it. The
+[discovery instructions](docs/installation.md) also explain the route to an
+installable package. The lifecycle scripts in this scaffold are placeholders.
 
 ## Compatible Agents
 

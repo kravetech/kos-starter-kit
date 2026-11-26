@@ -11,7 +11,13 @@ review_status: draft
 canonical: true
 ---
 
-# {{system_short_name}} Power-Ups
+# {{system_short_name}} legacy YAML Power-Up registry
+
+This template describes the layout of an older YAML registry. The Community
+installer supports read-only discovery and status for that layout. Current
+packages use `manifest.json` and the vault’s `Registry/power-ups.json`.
+Follow `docs/POWER-UP-INSTALLATION-GUIDE.md` in the extracted installer to
+install, enable, update or remove a package.
 
 ## What a Power-Up Is
 
@@ -32,7 +38,7 @@ Only KOS-side integration metadata:
   used for offline validation and compatibility checks.
 - This `README.md`.
 
-## What Must Stay Outside the Vault
+## External runtimes in the legacy layout
 
 The actual Power-Up software — code, dependencies, adapters, runtime state,
 caches, logs, and inbox/review queues — must **not** live inside this folder or
@@ -52,23 +58,20 @@ runtime into this folder or commit machine-specific absolute paths here — use
 the `{{power_ups_home_environment_variable}}` environment variable or a path
 relative to the workspace root instead.
 
-## How Registration Works
+## How historical registrations were recorded
 
-1. A Power-Up is discovered (or manually pointed to) at its `install_path`.
-2. Its `manifest.yaml` is validated: unique `id`, semantic `version`, a
+1. Older tools discovered the Power-Up at its `install_path`.
+2. They checked its `manifest.yaml` for a unique `id`, semantic `version`, a
    compatible `kos_compatibility` range, declared permissions, and lifecycle
    commands.
-3. Only after that validation passes — and only with explicit approval — is an
-   entry appended to `registry.yaml`. Discovery never registers a Power-Up
-   automatically and never overwrites an existing entry.
-4. A registered Power-Up is `enabled` until explicitly `disabled`; disabling
-   never deletes data.
+3. After validation and approval, older tools could append an entry to
+   `registry.yaml`. The current discovery and status commands only read it.
 
-See `docs/POWER-UP-INSTALLATION-GUIDE.md` in the starter kit (or your
+See `docs/POWER-UP-INSTALLATION-GUIDE.md` in the Community installer package (or your
 {{system_short_name}} copy of it under this folder, if you keep documentation
 in-vault) for the full command sequence.
 
-## Enable, Disable, Upgrade, Repair, Uninstall
+## Historical lifecycle fields and scripts
 
 - **Enable/disable** — flip `status` in the Power-Up's `registry.yaml` entry.
   Disabling stops adapters from invoking it; it does not remove files.

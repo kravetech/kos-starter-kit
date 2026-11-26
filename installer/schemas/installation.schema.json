@@ -43,6 +43,11 @@
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
       "description": "KOS Community edition architecture version. Absent in states written before it was introduced; the next upgrade records it."
     },
+    "installationDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Original installation date. Older records can omit this value."
+    },
     "coreVersion": {
       "description": "Deprecated legacy commercial-edition field retained only for reading older state."
     },

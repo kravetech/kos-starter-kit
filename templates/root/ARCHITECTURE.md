@@ -4,6 +4,7 @@ type: architecture
 status: active
 version: {{starter_kit_version}}
 community_version: {{community_version}}
+installer_version: {{installer_version}}
 kos_contract_version: {{kos_contract_version}}
 owner: "{{preferred_name}}"
 created: {{installation_date}}
@@ -18,8 +19,8 @@ canonical: true
 
 ## Release
 
-KOS Community edition `{{community_version}}`, bootstrapped by KOS Starter Kit `{{starter_kit_version}}`
-and conforming to KOS Core contract `{{kos_contract_version}}`.
+This vault runs KOS Community `{{community_version}}` on KOS Core contract `{{kos_contract_version}}`.
+It was installed with KOS Community installer `{{installer_version}}`.
 
 ## Purpose
 

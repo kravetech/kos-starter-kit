@@ -74,6 +74,16 @@ def safe(root: Path, rel: str = "", *, write: bool = False) -> Path:
     return path
 
 
+def export_path(path: Path, root: Path) -> Path:
+    path = path.absolute()
+    destination = safe(path.parent, path.name, write=True)
+    if destination == root or root in destination.parents or destination in root.parents:
+        raise Blocked("DRY_RUN_EXPORT_MUST_BE_OUTSIDE_TARGET")
+    if destination.exists():
+        raise Blocked("REPORT_DESTINATION_EXISTS")
+    return destination
+
+
 def target_root(value: Path) -> Path:
     root = Path(os.path.abspath(value))
     safe(root)

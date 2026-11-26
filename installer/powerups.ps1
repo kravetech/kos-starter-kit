@@ -1,4 +1,4 @@
-# Shared KOS Power-Up domain logic (dot-sourced, not executed directly).
+# Power-Up registry and discovery functions for the PowerShell installer.
 #
 # Provides a constrained YAML-lite reader plus registry/manifest validation
 # and read-only discovery, mirroring installer/powerups.py so both engines
@@ -271,11 +271,13 @@ function Test-KosPowerUpManifest {
     }
     if ($KosVersion -and $KosVersion -match $script:KosSemverPattern -and $minimum -match $script:KosSemverPattern) {
         if ((Compare-KosSemver $KosVersion $minimum) -lt 0) {
-            [void]$errors.Add("installed KOS $KosVersion is older than the Power-Up's minimum $minimum")
+            [void]$errors.Add("Installed KOS Core contract $KosVersion is older than the Power-Up's minimum $minimum.")
         }
         if ($maximumText -match $script:KosSemverPattern -and (Compare-KosSemver $KosVersion $maximumText) -gt 0) {
-            [void]$errors.Add("installed KOS $KosVersion is newer than the Power-Up's maximum $maximumText")
+            [void]$errors.Add("Installed KOS Core contract $KosVersion is newer than the Power-Up's maximum $maximumText.")
         }
+    } elseif (-not $KosVersion) {
+        [void]$warnings.Add("Power-Up compatibility was not checked because the installed KOS Core contract version is unknown.")
     }
     $installation = $Manifest["installation"]
     if ($null -eq $installation) { $installation = [ordered]@{} }

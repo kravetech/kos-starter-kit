@@ -1,4 +1,4 @@
-# Starter-Kit Manifest
+# KOS Community source manifest
 
 | Component | Purpose | Requirement | Modes | User data | AI load |
 | --- | --- | --- | --- | --- | --- |
@@ -26,4 +26,10 @@
 | `reports/*` | Build evidence | Generated | Builder | May name local source path | Audit only |
 | `test-output/*` | Synthetic test install | Generated | Test | Synthetic | Test only |
 
-`structure.manifest.json` is the complete machine-readable generated-file contract.
+See [the structure manifest](installer/structure.manifest.json) for the vault layout and template mappings.
+
+Run `./scripts/generate-manifest.ps1` or `bash scripts/generate-manifest.sh` to
+write `build/file-manifest.json`. In the source repository, the command hashes
+the paths in `installer/release-files.json`. In the extracted customer ZIP, it
+hashes the paths in `installer/archive-files.json`. Each output entry records
+the relative path, byte count and SHA-256.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validation, privacy, and manifest utilities for the starter kit."""
+"""Validation, privacy, and manifest utilities for KOS Community."""
 
 from __future__ import annotations
 
@@ -11,9 +11,10 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).absolute().parents[1] / "installer"))
-from safety import Blocked, inventory, safe, STATE
+from safety import Blocked, export_path, inventory, safe, STATE
 
 REQUIRED_PROJECT_FILES = [
     "README.md", "INSTALL.md", "INITIALIZE.md", "KOS-INSTALLER.md", "QUESTIONNAIRE.md",
@@ -88,14 +89,15 @@ def load_sensitive_terms(root: Path) -> list[str]:
     ]
 
 
-def write_report(path: Path, title: str, status: str, findings: list[str]) -> None:
+def write_report(path: Path, title: str, status: str, findings: list[str], *, exclusive=False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         f"# {title}", "", f"Generated: {dt.datetime.now(dt.timezone.utc).isoformat()}",
         f"Status: **{status}**", "", "## Findings", "",
     ]
     lines += [f"- {item}" for item in findings] if findings else ["- None."]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with path.open("x" if exclusive else "w", encoding="utf-8") as stream:
+        stream.write("\n".join(lines) + "\n")
 
 
 def validate_starter(root: Path, report: Path) -> int:
@@ -127,7 +129,7 @@ def validate_starter(root: Path, report: Path) -> int:
     available = set()
     for section in ("user", "system", "privacy", "rhythm"):
         available.update(example.get(section, {}).keys())
-    available |= {"system_name", "system_short_name", "system_description", "starter_kit_version", "community_version", "kos_contract_version"}
+    available |= {"system_name", "system_short_name", "system_description", "installation_date", "starter_kit_version", "installer_version", "community_version", "kos_contract_version"}
     for token in sorted(template_tokens - available):
         findings.append(f"ERROR template token has no answer mapping: `{{{{{token}}}}}`")
     for script in ("install.ps1", "initialize.ps1"):
@@ -135,20 +137,26 @@ def validate_starter(root: Path, report: Path) -> int:
         if "$ErrorActionPreference" not in content or "exit" not in content:
             findings.append(f"ERROR unsafe PowerShell error handling: `{script}`")
     status = "PASS" if not any(item.startswith("ERROR") for item in findings) else "FAIL"
-    write_report(report, "Starter-Kit Validation Report", status, findings)
+    write_report(report, "KOS Community Installer Validation Report", status, findings)
     return 0 if status == "PASS" else 2
 
 
 def validate_install(root: Path, report: Path | None) -> int:
+    if report:
+        report = export_path(report, root)
     if safe(root, STATE).is_file():
         from validation import validate_installation
-        result = validate_installation(root)
+        installed_release = {}
+        result = validate_installation(root, installed_release=installed_release)
         findings = [f"{item['severity'].upper()} {item['rule']}: `{item['path']}`" for item in result]
         status = "FAIL" if any(item['severity'] == 'error' for item in result) else "PASS"
         if report:
-            write_report(report, "Installation Validation Report", status, findings)
+            title = "KOS Community Installation Validation Report"
+            if installed_release.get("communityVersion"):
+                title = f"KOS Community {installed_release['communityVersion']} Installation Validation Report"
+            write_report(report, title, status, findings, exclusive=True)
         else:
-            print(json.dumps({"status": status, "findings": result}, indent=2))
+            print(json.dumps({**installed_release, "status": status, "findings": result}, indent=2))
         return 2 if status == "FAIL" else 0
     findings: list[str] = []
     required_files = ["README.md", "AGENTS.md", "CLAUDE.md", "CODEX.md", "ARCHITECTURE.md", "CONTEXT-POLICY.md", "TOKEN-OPTIMIZATION.md", "memory.md", "handoff.md", "00 - System/Installation/installer-state.json", "00 - System/Installation/INSTALLATION-REPORT.md", "00 - System/Automations/AUTOMATION-REGISTRY.md"]
@@ -170,7 +178,7 @@ def validate_install(root: Path, report: Path | None) -> int:
         findings.append("ERROR external automations are not explicitly unconfigured")
     status = "PASS" if not any(item.startswith("ERROR") for item in findings) else "FAIL"
     if report:
-        write_report(report, "Installation Validation Report", status, findings)
+        write_report(report, "KOS Community Installation Validation Report", status, findings, exclusive=True)
     else:
         print(json.dumps({"status": status, "findings": findings}, indent=2))
     return 0 if status == "PASS" else 2
@@ -272,23 +280,35 @@ def release_audit(root: Path, report: Path) -> int:
 
 def manifest(root: Path, output: Path) -> int:
     files = []
-    allowlist = json.loads(safe(root, "installer/release-files.json").read_text(encoding="utf-8-sig"))["files"]
+    source_list = safe(root, "installer/release-files.json")
+    is_source = source_list.exists() or safe(root, "scripts/release.py").exists()
+    selected = source_list if is_source else safe(root, "installer/archive-files.json")
+    allowlist = json.loads(selected.read_text(encoding="utf-8-sig"))["files"]
+    output = safe(output, write=True)
     for rel in sorted(allowlist):
         path = safe(root, rel)
+        if path == output:
+            raise Blocked("MANIFEST_OUTPUT_IS_INPUT")
         data = path.read_bytes()
         files.append({"path": rel, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps({"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(), "files": files}, indent=2) + "\n", encoding="utf-8")
+    data = {"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(), "files": files}
+    pending = tempfile.NamedTemporaryFile(dir=output.parent, delete=False)
+    try:
+        with pending:
+            pending.write((json.dumps(data, indent=2) + "\n").encode("utf-8"))
+        os.replace(pending.name, output)
+    finally:
+        Path(pending.name).unlink(missing_ok=True)
     return 0
 
 
 def powerups(root: Path, command: str, home_override: Path | None) -> int:
     """Read-only compatibility discovery for legacy YAML Power-Ups.
 
-    Package installation and registration are handled by the reviewed v1.2
-    package operation, never by this discovery interface.
+    Use the Community installer's package commands to install and register packages.
     """
-    from powerups import discover, load_yaml_lite, validate_registry_dict
+    from powerups import discover, installed_core_contract, load_yaml_lite, validate_registry_dict
 
     root = Path(os.path.abspath(root))
     safe(root)
@@ -352,21 +372,8 @@ def powerups(root: Path, command: str, home_override: Path | None) -> int:
         return 0
     home_path = Path(os.path.abspath(home))
     safe(home_path)
-    installed_state = safe(root, STATE)
-    kos_version = None
-    if installed_state.is_file():
-        try:
-            candidate = json.loads(installed_state.read_text(encoding="utf-8-sig")).get("kosContractVersion")
-            if isinstance(candidate, str) and re.fullmatch(r"\d+\.\d+\.\d+", candidate):
-                kos_version = candidate
-        except (ValueError, AttributeError):
-            pass
-    if kos_version is None:
-        architecture = safe(root, "ARCHITECTURE.md")
-        if architecture.is_file():
-            match = re.search(r"(?m)^version:\s*(\d+\.\d+\.\d+)\s*$", architecture.read_text(encoding="utf-8"))
-            kos_version = match.group(1) if match else None
-    candidates = discover(home_path, {str(item["id"]) for item in entries}, kos_version)
+    contract = installed_core_contract(root)
+    candidates = discover(home_path, {str(item["id"]) for item in entries}, contract)
     if not candidates:
         print(f"No candidate Power-Ups found under {home_path}")
         return 0
@@ -392,14 +399,18 @@ def main() -> int:
     if args.command == "validate-starter":
         return validate_starter(root, (args.report or root / "reports/VALIDATION-REPORT.md").resolve())
     if args.command == "validate-install":
-        return validate_install(root, args.report.resolve() if args.report else None)
+        try:
+            return validate_install(safe(args.root), args.report)
+        except (OSError, ValueError) as error:
+            print("ERROR: " + (str(error).split(":")[0] if isinstance(error, Blocked) else "VALIDATION_OUTPUT_FAILED"), file=sys.stderr)
+            return 2
     if args.command == "privacy":
         return privacy(root, (args.report or root / "PRIVACY-SCAN.md").resolve(), args.include_generated)
     if args.command == "release-audit":
         return release_audit(root, (args.report or root / "reports/RELEASE-AUDIT.md").resolve())
     if args.command.startswith("powerups-"):
         return powerups(args.root, args.command, args.home)
-    return manifest(root, (args.output or root / "build/file-manifest.json").resolve())
+    return manifest(root, args.output or root / "build/file-manifest.json")
 
 
 if __name__ == "__main__":

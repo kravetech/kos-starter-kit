@@ -1,13 +1,10 @@
-# Power-Up Manifest Specification
+# Legacy YAML Power-Up manifest specification
 
-This describes the legacy YAML format used for read-only discovery. KOS
-Community 1.0.0 installs Power-Ups through the immutable `manifest.json`
-contract in [PACKAGES-V1.md](PACKAGES-V1.md). YAML discovery does not install
-or register a Power-Up.
+KOS Community installs immutable packages containing a `manifest.json`. For a
+new Power-Up, follow the [v1 package format](PACKAGES-V1.md).
 
-Every Power-Up ships a `manifest.yaml` at its package root. The authoritative
-machine-readable contract is `installer/power-up-manifest.schema.json`
-(JSON Schema, draft 2020-12); this document explains it in prose.
+Read-only discovery of a legacy Power-Up expects a `manifest.yaml` at its root.
+The [legacy JSON Schema](../installer/power-up-manifest.schema.json) defines the YAML fields described below.
 
 ## File Format
 
@@ -15,7 +12,7 @@ machine-readable contract is `installer/power-up-manifest.schema.json`
 YAML subset**: block mappings, block sequences (including sequences of
 mappings), flow lists (`[a, b]` / `[]`), quoted or bare scalars, and `#`
 comments. Flow *mappings* (`{ key: value }`), anchors, tags, and multi-line
-scalars are **not** supported by the starter kit's dependency-free reader
+scalars are **not** supported by the Community installer's dependency-free reader
 (`installer/powerups.py` / `installer/powerups.ps1`). Always write nested
 maps in block style.
 
@@ -27,8 +24,8 @@ maps in block style.
 | `id` | string | Lowercase, hyphenated, matches `^[a-z][a-z0-9-]*$`. Unique across a KOS instance's registry. |
 | `name` | string | Human-readable name. |
 | `version` | string | Semantic version of the Power-Up itself. |
-| `kos_compatibility.minimum_version` | string | Lowest KOS Core contract version this Power-Up supports, compared with `kosContractVersion` in the target's `00 - System/Installation/kos-installation.json` (installations without state fall back to the `ARCHITECTURE.md` `version`). |
-| `kos_compatibility.maximum_version` | string or `null` | Optional upper bound. |
+| `kos_compatibility.minimum_version` | string | Lowest supported KOS Core contract version, inclusive. Discovery reads `kosContractVersion` from the vault's `00 - System/Installation/kos-installation.json`. |
+| `kos_compatibility.maximum_version` | string or `null` | Highest supported KOS Core contract version, inclusive. Use `null` for an open upper bound. |
 | `installation.supported_modes` | array | One or both of `external`, `embedded`. |
 | `installation.default_mode` | string | Must be one of `supported_modes`. |
 | `agents.canonical_skill` | string | Path to the provider-neutral skill definition, matching `.agents/skills/<id>/SKILL.md`. |
@@ -61,13 +58,20 @@ contract, even if the script behind it is a stub — see
 - **Errors** (invalid discovery candidates): missing/invalid `schema_version`; `id` not
   lowercase-hyphenated; `version` not semver; missing or non-semver
   `kos_compatibility.minimum_version`; a non-null, non-semver
-  `maximum_version`; installed KOS version older than `minimum_version` or
+  `maximum_version`; installed KOS Core contract older than `minimum_version` or
   newer than `maximum_version`; empty or invalid `installation.supported_modes`;
   `default_mode` not among `supported_modes`; missing `permissions.read` or
   `permissions.write`; `canonical_kos_writes.allowed: true` without
   `requires_explicit_approval: true`.
 - **Warnings** (reported without failing discovery): missing
-  `agents.canonical_skill`; any missing `lifecycle.*` command.
+  `agents.canonical_skill`, any missing `lifecycle.*` command, or an unknown
+  installed KOS Core contract version.
+
+If the installation record has no valid Core contract version, discovery checks
+for one top-level `kos_contract_version` in the opening YAML front matter of
+the vault's `ARCHITECTURE.md`. If that field is absent, duplicated or invalid,
+discovery warns that compatibility could not be checked. A generic `version`
+field or a version in the document body cannot establish Core compatibility.
 
 Discovery additionally reports, as errors or warnings:
 
@@ -164,5 +168,5 @@ power_ups:
 `status` is `enabled` or `disabled`. `installation_mode` is `external` or
 `embedded`. `manifest` is a path relative to `00 - System/Power-Ups/`,
 pointing at the locally stored copy of that Power-Up's manifest. The legacy
-`register` commands are blocked in v1.2. Review and repackage a candidate
-under the immutable package contract before installation.
+`register` command exits with status 2. To install a reviewed legacy Power-Up,
+convert its manifest and payload to the [v1 package format](PACKAGES-V1.md).

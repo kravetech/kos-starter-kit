@@ -89,7 +89,7 @@ Legacy Pro 1.1.0 is a separately licensed distribution. The installer preserves 
 
 The pre-existing YAML Power-Up templates and discovery modules remain source
 history for compatibility review. They are not an immutable package installer.
-Use this engine for all v1.2 lifecycle mutations; manually review/import older
-registries rather than silently creating another registry.
+Use the KOS Community installer to install, update or remove v1 packages.
+Review and import any older registry before you create a new one.
 
 The read-only runtime interfaces are Python `resolve_powerup` and PowerShell `Resolve-KosPowerUp`. They verify immutable files and project activation, combine defaults/global/project configuration, preserve unknown keys, and honor global disabled state. They return data and never run package entrypoints. Project activation uses the shipped `project-activation` schema.

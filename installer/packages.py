@@ -49,7 +49,7 @@ def signature_verify(manifest, trust):
         raise Blocked("SIGNATURE_INVALID") from exc
 
 
-def read_package(path: Path, trust=None):
+def read_package(path: Path, trust=None, *, contract_version=None):
     safe(path.parent, path.name)
     blobs = {}
     if path.is_dir():
@@ -95,7 +95,7 @@ def read_package(path: Path, trust=None):
     kind = manifest["type"]
     if manifest["schema"] != {"skill": "kos-skill/v1", "powerup": "kos-powerup/v1"}.get(kind, "kos-package/v1"):
         raise Blocked("PACKAGE_SCHEMA_IDENTITY")
-    if not compatible(manifest["compatibility"], RELEASE["kosContractVersion"]):
+    if not compatible(manifest["compatibility"], contract_version or RELEASE["kosContractVersion"]):
         raise Blocked("PACKAGE_CONTRACT_INCOMPATIBLE")
     canonical_editions = [canonical_edition(item) for item in manifest["supportedEditions"]]
     if canonical_editions == ["pro"] and not any(d.startswith(("kos.pro.", "kos.core.")) for d in manifest.get("requiredCapabilities", [])):
@@ -191,13 +191,15 @@ def plan_package(root, command, package=None, package_id=None, selected_version=
             all_packages[key] = entry
     planned = {"schemaVersion": "1.0.0", "operation": "package " + command, "targetType": "managed-kos", "edition": canonical_edition(state["edition"]), "previousVersion": state["starterKitVersion"], "resultingVersion": state["starterKitVersion"], "items": [], "permissions": [], "blocked": False}
     payload = {}
+    planned.update(product="KOS Community", communityVersion=state.get("communityVersion"),
+                   installerVersion=state["installerVersion"])
     if command == "list":
         planned["packages"] = all_packages
         return planned, payload
     if command in {"install", "update", "validate"}:
         if package is None:
             raise Blocked("PACKAGE_REQUIRED")
-        manifest, blobs, identity = read_package(package, trust)
+        manifest, blobs, identity = read_package(package, trust, contract_version=state["kosContractVersion"])
         package_id = manifest["id"]
         if not supports_edition(manifest["supportedEditions"], state["edition"]):
             raise Blocked("PACKAGE_EDITION_INCOMPATIBLE")

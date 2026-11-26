@@ -9,6 +9,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($Resume) {
+    [Console]::Error.WriteLine('RESUME_REQUIRES_JOURNAL_REVIEW: inspect the interrupted journal and preview rollback before replanning.')
+    exit 2
+}
 $starterRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
 $installer = Join-Path $starterRoot "KOS-INSTALLER.md"
 $logRoot = Join-Path $starterRoot "logs"
@@ -17,7 +21,7 @@ $logPath = Join-Path $logRoot ("initialize-{0}.log" -f (Get-Date -Format "yyyyMM
 
 try {
     if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
-        throw "KOS-INSTALLER.md not found in starter-kit root."
+        throw "KOS-INSTALLER.md is missing from the KOS Community installer folder."
     }
     $codex = Get-Command codex -ErrorAction SilentlyContinue
     $claude = Get-Command claude -ErrorAction SilentlyContinue
@@ -40,16 +44,14 @@ try {
     $directives = @("Read KOS-INSTALLER.md and execute the installation.")
     if ($answerPath) { $directives += "Use answer file: $answerPath" }
     if ($DryRun) { $directives += "Run in dry-run mode only." }
-    if ($Resume) { $directives += "Resume from saved installer state." }
     if ($Migration) { $directives += "Use migration mode and preserve existing files." }
     $prompt = $directives -join " "
     @(
         "Time: $([DateTimeOffset]::Now.ToString('o'))"
-        "Starter root: $starterRoot"
+        "KOS Community installer folder: $starterRoot"
         "Agent: $Agent"
         "Answer file supplied: $([bool]$answerPath)"
         "Dry run: $DryRun"
-        "Resume: $Resume"
         "Migration: $Migration"
     ) | Set-Content -LiteralPath $logPath -Encoding utf8
     Push-Location $starterRoot

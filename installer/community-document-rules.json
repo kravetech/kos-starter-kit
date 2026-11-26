@@ -1,0 +1,24 @@
+{
+  "README.md": [
+    {
+      "pattern": "^## (?:KOS Distribution\\n\\n- Edition: KOS Community `[0-9]+\\.[0-9]+\\.[0-9]+`\\n- Bootstrap distribution: KOS Starter Kit `[0-9]+\\.[0-9]+\\.[0-9]+`|KOS Community `[0-9]+\\.[0-9]+\\.[0-9]+`\\n\\n- Installer version: `[0-9]+\\.[0-9]+\\.[0-9]+`)\\n- Architecture: KOS Core contract `[0-9]+\\.[0-9]+\\.[0-9]+`$",
+      "replacement": "## KOS Community `{{communityVersion}}`\n\n- Installer version: `{{installerVersion}}`\n- Architecture: KOS Core contract `{{kosContractVersion}}`"
+    },
+    {
+      "optional": true,
+      "pattern": "^## First Day\\n\\n1\\. Review `me\\.md` and privacy defaults\\.\\n2\\. Process one item through `06 - Inbox`\\.\\n3\\. Create project context only when a project becomes active\\.$",
+      "replacement": "## First Day\n\n1. Review `me.md` and privacy defaults.\n2. Process one item through `06 - Inbox`.\n3. From the vault root, run `python \"00 - System/Tools/ProjectContext/project_context.py\" --project \"Project Name\" init` when a project becomes active. The installed guide is beside the command in `PROJECT-CONTEXT.md`."
+    }
+  ],
+  "ARCHITECTURE.md": [
+    {
+      "frontMatter": true,
+      "pattern": "^version: [0-9]+\\.[0-9]+\\.[0-9]+\\ncommunity_version: [0-9]+\\.[0-9]+\\.[0-9]+\\n(?:installer_version: [0-9]+\\.[0-9]+\\.[0-9]+\\n)?kos_contract_version: [0-9]+\\.[0-9]+\\.[0-9]+$",
+      "replacement": "version: {{starterKitVersion}}\ncommunity_version: {{communityVersion}}\ninstaller_version: {{installerVersion}}\nkos_contract_version: {{kosContractVersion}}"
+    },
+    {
+      "pattern": "^## Release\\n\\n(?:KOS Community edition `[0-9]+\\.[0-9]+\\.[0-9]+`, bootstrapped by KOS Starter Kit `[0-9]+\\.[0-9]+\\.[0-9]+`\\nand conforming to KOS Core contract `[0-9]+\\.[0-9]+\\.[0-9]+`\\.|This vault runs KOS Community `[0-9]+\\.[0-9]+\\.[0-9]+` on KOS Core contract `[0-9]+\\.[0-9]+\\.[0-9]+`\\.\\nIt was installed with KOS Community installer `[0-9]+\\.[0-9]+\\.[0-9]+`\\.)$",
+      "replacement": "## Release\n\nThis vault runs KOS Community `{{communityVersion}}` on KOS Core contract `{{kosContractVersion}}`.\nIt was installed with KOS Community installer `{{installerVersion}}`."
+    }
+  ]
+}
