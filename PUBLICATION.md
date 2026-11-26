@@ -44,6 +44,13 @@ and GitHub Release are complete.
 
 ## GitHub release draft
 
+After verifying the public ZIP download, refresh the README Quick Start links and the
+copyable install and upgrade prompts under `docs/prompts/v<communityVersion>/`.
+Pin each prompt to the published asset name, release URL and verified SHA-256.
+Keep these prompts in the source allowlist only. Including the checksum of the
+finished ZIP inside that ZIP would change the checksum. The docs site's copy
+buttons consume the fenced text from these versioned Markdown files.
+
 Check the repository’s **About** description before publication. Use this
 version-independent wording for the repository:
 

@@ -35,6 +35,13 @@ After setup, Gemini CLI, Claude Code and Codex CLI can each call the same versio
 
 ## Quick Start
 
+To use Codex CLI or Claude Code, open the prompt for your task and copy the entire block into your agent.
+
+- [Copy install prompt — create a new vault](https://github.com/kravetech/kos-community/blob/main/docs/prompts/v1.3.1/install.md)
+- [Copy upgrade prompt — update an existing vault](https://github.com/kravetech/kos-community/blob/main/docs/prompts/v1.3.1/update.md)
+
+To start the guided launcher from the extracted installer instead, run the command for your platform.
+
 Windows:
 
 ```powershell

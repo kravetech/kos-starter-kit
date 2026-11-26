@@ -26,6 +26,8 @@
     "docs/POWER-UP-MANIFEST-SPECIFICATION.md",
     "docs/PROJECT-ACTION-LIST.md",
     "docs/PROJECT-CONTEXT.md",
+    "docs/prompts/v1.3.1/install.md",
+    "docs/prompts/v1.3.1/update.md",
     "examples/project-action-list/meeting.md",
     "examples/project-action-list/powerup/manifest.json",
     "examples/project-action-list/powerup/payload/shared-skill.json",
