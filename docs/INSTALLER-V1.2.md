@@ -1,6 +1,6 @@
 # KOS Community installation, upgrade and recovery
 
-This guide covers KOS Community 1.3.1 and KOS Core contract 1.0.0. The installer and distribution use the Community release number. The guide retains its historical filename for existing links. Check `installer/release.json` in your extracted kit for the exact versions. New installations use `edition: community`.
+This guide covers KOS Community 1.4.0 and KOS Core contract 1.0.0. The installer and distribution use the Community release number. The guide retains its historical filename for existing links. Check `installer/release.json` in your extracted kit for the exact versions. New installations use `edition: community`.
 
 ## Commands and approvals
 

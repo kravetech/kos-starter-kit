@@ -1,6 +1,6 @@
 # Install KOS Community 1.3.1 in a new folder
 
-Use this for a new or empty folder. For an existing KOS vault, use the [upgrade prompt](update.md). Copy the entire block into Codex CLI or Claude Code.
+For guided installation of the [latest release](../install.md), use the current prompt. This archived prompt installs 1.3.1 in a new or empty folder. For an existing KOS vault, use the [upgrade prompt](update.md). Copy the entire block into Codex CLI or Claude Code.
 
 ```text
 Help me install KOS Community 1.3.1.

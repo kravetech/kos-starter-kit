@@ -3,12 +3,12 @@ title: KOS Community Installer Architecture
 type: architecture
 status: active
 area: system
-version: 1.3.1
-community_version: 1.3.1
+version: 1.4.0
+community_version: 1.4.0
 kos_contract_version: 1.0.0
 author: Kraven
 created: 2026-07-15
-updated: 2026-11-26
+updated: 2026-11-27
 tags:
   - knowledge-os
   - architecture
@@ -28,13 +28,19 @@ related:
 | Field | Value |
 | --- | --- |
 | Product | KOS Community |
-| Community version | `1.3.1` |
-| Installer version | `1.3.1` |
-| Distribution version | `v1.3.1` |
+| Community version | `1.4.0` |
+| Installer version | `1.4.0` |
+| Distribution version | `v1.4.0` |
 | KOS Core contract | `1.0.0` |
 | Author | `Kraven` |
 | Release status | Repository tags and GitHub Releases record published state |
 | Release date | See the corresponding GitHub Release |
+
+## Guided setup
+
+The Python 3.10+ setup command verifies a published Community distribution and pins its engine and templates for the entire operation. New vaults use one approval. Updates require a verified full snapshot, an independent rehearsal, an extension and link comparison, and a second approval against a fresh preview. The original installer commands retain their native execution paths.
+
+The [Community setup prompt](docs/prompts/setup.md) and the optional [kos-community-fix skill](skills/kos-community-fix/SKILL.md) use the same launcher. The skill can run outside a vault in any of the three supported clients. It shares the installer's release verifier and passes the exact selected ZIP to the verified launcher. Older attachments can use a newer official launcher while keeping their own distribution version. Explicit `--check` runs vault validation and the link and extension audit without creating a backup or writing a report.
 
 ## Purpose
 

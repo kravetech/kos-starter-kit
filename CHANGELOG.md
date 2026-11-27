@@ -2,6 +2,17 @@
 
 Starting with 1.3.1, the Community product, installer and distribution use one release number. Earlier bracketed headings identify distribution versions. Distribution `1.3.0` shipped KOS Community `1.1.0`.
 
+## KOS Community 1.4.0
+
+Release date: 2026-11-27
+
+Distribution tag `v1.4.0`. Installer asset `kos-community-v1.4.0.zip`. KOS Core contract `1.0.0`.
+
+- Guided setup accepts the official Community repository URL or a local release ZIP, verifies the stable release, and identifies the vault before writing.
+- Fresh installs preview settings once. Updates show intervening release changes, propose backup and rehearsal locations, and request separate approval for the original vault.
+- Update rehearsals check extension preservation and internal links. Each material run reports validation, actual writes, proposals, and recovery evidence.
+- One copyable prompt handles installs and updates in Codex, Claude Code and Gemini CLI. The optional `kos-community-fix` skill accepts the official repository URL or a local Community release ZIP. Use `--check` to diagnose a recognized vault and list existing link or extension issues without applying changes.
+
 ## KOS Community 1.3.1
 
 Release date: 2026-11-26

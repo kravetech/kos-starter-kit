@@ -6,9 +6,7 @@ Route business operations, organizations, clients, people, products, meetings, a
 
 ## Start Here
 
-- [[Operations]]
-- [[Products]]
-- [[Strategy]]
+Open `Operations/` for procedures, `Products/` for product work, or `Strategy/` for planning.
 
 ## Subdomain Map
 

@@ -117,8 +117,8 @@ class ReleaseTests(unittest.TestCase):
 
     def test_schema_and_template_versions(self):
         meta = json.loads((ROOT / "installer/release.json").read_text(encoding="utf-8"))
-        self.assertEqual(meta["starterKitVersion"], "1.3.1")
-        self.assertEqual(meta["installerVersion"], "1.3.1")
+        self.assertEqual(meta["starterKitVersion"], "1.4.0")
+        self.assertEqual(meta["installerVersion"], "1.4.0")
         self.assertEqual(meta["edition"], "community")
         self.assertEqual(meta["kosContractVersion"], "1.0.0")
         self.assertEqual(meta["communityVersion"], meta["installerVersion"])
@@ -215,7 +215,8 @@ class ReleaseTests(unittest.TestCase):
         meta = json.loads((ROOT / "installer/release.json").read_bytes())
         tag = "v" + meta["communityVersion"]
         env = {"GITHUB_REF_TYPE": "tag", "GITHUB_REF": "refs/tags/" + tag, "GITHUB_REF_NAME": tag}
-        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(sys, "argv", [
+        # Keep the native process environment intact, including empty Git settings on Windows.
+        with mock.patch.object(os, "environ", env), mock.patch.object(sys, "argv", [
                 "release.py", "--stage", "--candidate", "another-candidate"]), \
                 mock.patch.object(release, "verify_release_tag", return_value="tagged"), \
                 mock.patch.object(release, "verify_candidate", return_value=([], {"fingerprint": "other"})), \

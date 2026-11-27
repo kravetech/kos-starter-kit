@@ -603,7 +603,7 @@ def _metadata_item(root, plan, payload, rel, data):
     payload[rel] = data
 
 
-def apply(root, planned, payload):
+def apply(root, planned, payload, on_run=None):
     if planned.get("blocked"):
         raise Blocked("PLAN_HAS_BLOCKING_CONFLICTS")
     changes = [i for i in planned["items"] if i["action"] in {"CREATE", "MERGE", "UPDATE_SAFE", "UPDATE_APPROVED", "PROPOSE", "CREATE_DIRECTORY", "REMOVE"}]
@@ -615,6 +615,8 @@ def apply(root, planned, payload):
         if item.get("kind") != "directory" and current_hash(root, item["path"]) != item.get("currentHash"):
             raise Blocked("TARGET_CHANGED_SINCE_PLAN")
     with Transaction(root, planned) as tx:
+        if on_run is not None:
+            on_run(tx.run)
         for item in sorted(changes, key=lambda i: (i["path"] in {STATE, CAPABILITIES} or i["path"].endswith(("skills.json", "power-ups.json", "packages.json")), i["path"])):
             rel = item["path"]
             if rel in {STATE, CAPABILITIES} or rel.endswith(("skills.json", "power-ups.json", "packages.json")):

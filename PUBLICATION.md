@@ -44,27 +44,26 @@ and GitHub Release are complete.
 
 ## GitHub release draft
 
-After verifying the public ZIP download, refresh the README Quick Start links and the
-copyable install and upgrade prompts under `docs/prompts/v<communityVersion>/`.
-Pin each prompt to the published asset name, release URL and verified SHA-256.
-Keep these prompts in the source allowlist only. Including the checksum of the
-finished ZIP inside that ZIP would change the checksum. The docs site's copy
-buttons consume the fenced text from these versioned Markdown files.
+The current copyable text lives in [the Community setup prompt](docs/prompts/setup.md).
+Point new install and update copy buttons to that one text block. Keep the
+historical versioned prompts available for older links. After publication, test
+the prompt with the official repository URL and confirm that the named asset and
+published SHA-256 match the tagged kit. Check all three supported agent clients.
 
 Check the repository’s **About** description before publication. Use this
 version-independent wording for the repository:
 
 > KOS Community is a free, open-source Markdown workspace for notes, projects and AI-assisted workflows. Includes cross-platform installers and optional Obsidian support.
 
-For this candidate, use the title **KOS Community 1.3.1**
-and distribution tag `v1.3.1`. The customer asset is
-`kos-community-v1.3.1.zip`. The tag and filename use the Community release number
+For this candidate, use the title **KOS Community 1.4.0**
+and distribution tag `v1.4.0`. The customer asset is
+`kos-community-v1.4.0.zip`. The tag and filename use the Community release number
 in `installer/release.json`. Every release, including an installer-only fix,
 gets a new Community release number. For direct downloads, use the tagged
 release’s exact asset name. Earlier releases retain their original filenames and URLs.
 To print the expected asset name, run `python scripts/release.py --archive-name`.
 
-Open the release body with “KOS Community 1.3.1 uses KOS Core contract 1.0.0.”
+Open the release body with “KOS Community 1.4.0 uses KOS Core contract 1.0.0.”
 Use the customer-facing bullets in the top
 section of [CHANGELOG.md](CHANGELOG.md) for the changes. Under **Download**,
 name the exact asset, include the verified ZIP’s SHA-256 and direct readers
@@ -87,8 +86,8 @@ be in both lists to ship; new source files are not implicitly published. Tests,
 CI, release tooling, maintainer documentation, reports, local answers/permissions,
 logs, build/test output, PDFs, HTML and private configuration are excluded from
 the ZIP. Historical reports remain in source history.
-`installer/release.json` records KOS Community 1.3.1,
-installer 1.3.1, distribution 1.3.1, contract 1.0.0, schema/adapter 1.0.0 and independently
+`installer/release.json` records KOS Community 1.4.0,
+installer 1.4.0, distribution 1.4.0, contract 1.0.0, schema/adapter 1.0.0 and independently
 versioned extensions. `python scripts/release.py` rejects any version drift.
 
 NOTICE carries existing attribution; LICENSE retains Apache terms. Commercial

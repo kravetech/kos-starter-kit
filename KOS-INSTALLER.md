@@ -6,6 +6,8 @@ Operate the native installer as a conservative migration engineer.
 
 Use the KOS Community installer to create or upgrade a vault on the shared KOS Core contract.
 
+For a repository URL or a supplied release ZIP, follow [first run with an agent](INSTALL.md#first-run-with-an-agent) or use the installed `kos-community-fix` Skill. Relay the launcher's preview and each approval. A blocked guided run ends with its diagnostic and any journal it reports. The following contract covers explicit native operations and dry runs.
+
 ## Objective
 
 Create new installations, reconcile upgrades and adopt Obsidian vaults using the [Community operation guide](docs/INSTALLER-V1.2.md).
@@ -24,7 +26,7 @@ Never include secrets, personal answers or absolute machine paths in release ass
 
 ## Questionnaire
 
-For a new vault, ask for the target folder, preferred name or alias, selected providers and restricted folders. Prepare private answers outside the target. For an update, read the installation records, retain existing choices, confirm privacy exclusions and preview on a disposable copy first. A managed vault must record a supported distribution version. A legacy vault must record a supported original installer version. Follow [the questionnaire](QUESTIONNAIRE.md) and `installer/questionnaire.schema.json`.
+For a new vault, propose an unused folder, group missing setup choices, and show the full target with the dry-run plan. Prepare private answers outside the target. For an update, identify the original from the supplied path or current vault. Read its installation records and retain existing choices. Use the guided rehearsal procedure in the questionnaire to propose and verify the external backup and test copy. Get separate approval for applying a fresh plan to the original. A managed vault must record a supported distribution version. A legacy vault must record a supported original installer version. Follow [the questionnaire](QUESTIONNAIRE.md) and `installer/questionnaire.schema.json`.
 
 ## Installation Modes
 

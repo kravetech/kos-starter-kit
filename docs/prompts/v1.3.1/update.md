@@ -1,6 +1,6 @@
 # Upgrade an existing vault to KOS Community 1.3.1
 
-Have a verified backup and a separate test copy ready. For a new vault, use the [install prompt](install.md). Copy the entire block into Codex CLI or Claude Code.
+For the [latest release and automatic backup preparation](../update.md), use the current prompt. This archived 1.3.1 procedure expects a verified backup and separate test copy. For a new vault, use the [install prompt](install.md). Copy the entire block into Codex CLI or Claude Code.
 
 ```text
 Help me update my existing KOS vault to KOS Community 1.3.1.

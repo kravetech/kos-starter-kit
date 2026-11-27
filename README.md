@@ -1,10 +1,10 @@
 # KOS Community
 
-KOS Community 1.3.1 is a portable Markdown workspace for notes, projects and AI-assisted workflows. Its installer creates new vaults and upgrades existing ones. This release uses KOS Core contract 1.0.0.
+KOS Community 1.4.0 is a portable Markdown workspace for notes, projects and AI-assisted workflows. Its installer creates new vaults and upgrades existing ones. This release uses KOS Core contract 1.0.0.
 
-This version uses Git tag `v1.3.1` and installer **`kos-community-v1.3.1.zip`**. To download a published release, choose its named installer ZIP under **Assets**. GitHub also offers source archives for developers. [Browse published releases](https://github.com/kravetech/kos-community/releases)
+Use one prompt to create a vault or update an existing one in Codex, Claude Code or Gemini CLI. Your agent looks up the latest stable Community release and verifies its installer. [Copy the setup prompt](docs/prompts/setup.md)
 
-Obsidian is optional. Choose a new or empty folder for KOS Community, then open it in your preferred Markdown editor. For an existing KOS vault, follow the [update instructions](INSTALL.md#update-an-existing-kos-vault).
+Obsidian is optional. The vault opens in your preferred Markdown editor. This checkout targets distribution `v1.4.0` and archive `kos-community-v1.4.0.zip`.
 
 ## Where This Fits
 
@@ -35,30 +35,11 @@ After setup, Gemini CLI, Claude Code and Codex CLI can each call the same versio
 
 ## Quick Start
 
-To use Codex CLI or Claude Code, open the prompt for your task and copy the entire block into your agent.
+Open your agent in an empty folder or your existing vault and paste the [Community setup prompt](docs/prompts/setup.md). A new install shows the proposed location and settings. An update shows the release changes and rehearses on a copy before asking to update the original. After setup, the local report lists actual changes and proposals for review.
 
-- [Copy install prompt — create a new vault](https://github.com/kravetech/kos-community/blob/main/docs/prompts/v1.3.1/install.md)
-- [Copy upgrade prompt — update an existing vault](https://github.com/kravetech/kos-community/blob/main/docs/prompts/v1.3.1/update.md)
+For the terminal command or manual PowerShell and Bash options, see the [installation guide](INSTALL.md).
 
-To start the guided launcher from the extracted installer instead, run the command for your platform.
-
-Windows:
-
-```powershell
-.\initialize.ps1 -Agent codex
-```
-
-macOS or Linux:
-
-```bash
-./initialize.sh --agent codex
-```
-
-To preview a direct installation on Windows, prepare your own [answers file](QUESTIONNAIRE.md) and run:
-
-```powershell
-.\install.ps1 -Operation new -Target ..\DemoVault -Answers .\installer\answers.json -DryRun
-```
+For repeated setups from a repository URL or an attached Community release, add the [kos-community-fix Skill](INSTALL.md#reuse-the-setup-skill) to your tools workspace.
 
 ## Privacy Model
 
